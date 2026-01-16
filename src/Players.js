@@ -2,10 +2,24 @@ class Player {
     name;
     hand;
     faceDownCard;
+    isBusted;
     constructor(name) {
         this.name = name;
         this.hand = [];
         this.faceDownCard = null;
+        this.isBusted = false;
+    }
+    // NEW: Check if player has busted (over 21)
+    checkBust() {
+        const total = this.calculateTotalScore();
+        this.isBusted = total > 21;
+        return this.isBusted;
+    }
+    // NEW: Reset bust status for new round
+    resetForNewRound() {
+        this.hand = [];
+        this.faceDownCard = null;
+        this.isBusted = false;
     }
     addCard(card) {
         this.hand.push(card);

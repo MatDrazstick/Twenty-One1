@@ -43,5 +43,14 @@ class Deck {
     printDeck() {
         return this.cards.map(card => card.toString()).join(', ');
     }
+    // Check if deck has specific value
+    containsValue(value) {
+        for (const card of this.cards) {
+            if (card.values === value) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 export { Deck };

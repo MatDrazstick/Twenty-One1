@@ -1,20 +1,33 @@
-import { Card } from './Card.js';
-import { Deck } from './Deck.js';
-import { Player } from './Players.js';
-
-console.log("=== Starting Tests ===\n");
-// Task 1: Create a deck and shuffle it 3 times
-console.log("Task 1: Shuffling Test");
-console.log("----------------------");
-
+import { Player } from "./Players.js";
+import { Deck } from "./Deck.js";
+console.log("=== Task 4: Twenty One Initial Deal ===\n");
 const deck = new Deck();
-console.log("Initial deck order (before shuffle):");
-console.log(deck.printDeck());
+deck.shuffle();
+const player1 = new Player("Player 1");
+const player2 = new Player("Player 2");
+console.log("Step 1: Deal face-down cards");
+player1.setFaceDownCard(deck.dealCard(false));
+player2.setFaceDownCard(deck.dealCard(false));
+console.log(`Player 1 face-down card: ${player1.faceDownCard?.toString()}`);
+console.log(`Player 2 face-down card: ${player2.faceDownCard?.toString()}`);
+console.log("\nStep 2: Deal face-up cards");
+player1.addCard(deck.dealCard(true));
+player2.addCard(deck.dealCard(true));
 
-// Shuffle 3 times and show results
-for (let i = 1; i <= 3; i++) {
-  deck.shuffle();
-  console.log(`\nAfter shuffle #${i}:`);
-  console.log(deck.printDeck());
-}
-console.log("\n" + "=".repeat(50) + "\n");
+console.log(`Player 1 hand: ${player1.printHand()}`);
+console.log(`Player 2 hand: ${player2.printHand()}`);
+
+console.log("\nStep 3: Calculate visible scores");
+console.log(`Player 1 visible score: ${player1.calculateVisibleScore()}`);
+console.log(`Player 2 visible score: ${player2.calculateVisibleScore()}`);
+
+console.log("\nStep 4: Reveal face-down cards");
+player1.revealFaceDownCard();
+player2.revealFaceDownCard();
+
+console.log(`Player 1 hand (revealed): ${player1.printHand()}`);
+console.log(`Player 2 hand (revealed): ${player2.printHand()}`);
+
+console.log(`\nPlayer 1 total score: ${player1.calculateTotalScore()}`);
+console.log(`Player 2 total score: ${player2.calculateTotalScore()}`);
+console.log(`Cards left in deck: ${deck.cardsRemaining()}`);
