@@ -64,12 +64,11 @@ export class Game {
     // Initial deal for a round
     setupNewRound() {
         console.log(`\n=== Round ${this.roundNumber} ===`);
-        // Reset deck if needed
-        if (this.deck.cardsRemaining() < 4) {
-            this.deck.reset();
-            this.deck.shuffle();
-            console.log("Deck reshuffled!");
-        }
+        // Reset and shuffle deck for each new round
+        // This ensures all cards are available again
+        this.deck.reset();
+        this.deck.shuffle();
+        console.log("Deck shuffled for new round!");
         // Reset player hands and stayed flags
         this.players.forEach(player => {
             player.hand = [];
@@ -88,7 +87,7 @@ export class Game {
         console.log(`${this.players[1].name}: ${this.players[1].printHand()}`);
     }
     // Current player draws a card
-    playerDraws() {
+    async playerDraws() {
         if (this.gameOver)
             return;
         const currentPlayer = this.players[this.currentPlayerIndex];
@@ -115,7 +114,7 @@ export class Game {
             // If both players have stayed/busted, end the round
             if (this.player1Stayed && this.player2Stayed) {
                 console.log("Both have stayed! Outputting scores");
-                this.endRound();
+                await this.endRound();
             }
             else {
                 // Switch to other player without revealing the bust
@@ -127,7 +126,7 @@ export class Game {
         this.switchTurn();
     }
     // Current player stays
-    playerStays() {
+    async playerStays() {
         if (this.gameOver)
             return;
         const currentPlayer = this.players[this.currentPlayerIndex];
@@ -142,7 +141,7 @@ export class Game {
         // If both players have stayed, end the round
         if (this.player1Stayed && this.player2Stayed) {
             console.log("Both have stayed! Outputting scores");
-            this.endRound();
+            await this.endRound();
         }
         else {
             this.switchTurn();
@@ -152,14 +151,19 @@ export class Game {
     switchTurn() {
         this.currentPlayerIndex = 1 - this.currentPlayerIndex; // Flips 0↔1
         console.log(`\nNow it's ${this.players[this.currentPlayerIndex].name}'s turn.`);
-        // If it's AI's turn in single player mode, execute AI move
-        if (this.mode === 'singleplayer' && this.currentPlayerIndex === 1) {
-            this.executeAITurn();
-        }
+        // Note: AI turn is now controlled manually from the game loop
+        // This allows for better control in interactive mode
     }
     // Execute AI player's turn
-    executeAITurn() {
+    async executeAITurn() {
         const aiPlayer = this.players[1];
+        // Add delay before AI makes decision, longer for higher difficulties
+        // Level 1: 3s, Level 2: 3.5s, Level 3: 4s, Level 4: 4.5s, Level 5: 5s
+        let thinkingTime = 3000;
+        if (aiPlayer instanceof AIPlayer) {
+            thinkingTime = 2500 + (aiPlayer.difficulty * 500);
+        }
+        await this.delay(thinkingTime);
         // Check if AI is an AIPlayer instance
         if (!(aiPlayer instanceof AIPlayer)) {
             console.error(`Expected AIPlayer instance for single player mode, but got: ${aiPlayer.constructor.name}`);
@@ -171,16 +175,19 @@ export class Game {
         const shouldHit = aiPlayer.shouldHit(opponentVisibleScore, deckCardsRemaining);
         if (shouldHit) {
             console.log(`${aiPlayer.name} decides to draw a card.`);
-            this.playerDraws();
+            await this.playerDraws();
         }
         else {
             console.log(`${aiPlayer.name} decides to stay.`);
-            this.playerStays();
+            await this.playerStays();
         }
     }
     // End the round and determine winner
-    endRound() {
+    async endRound() {
         console.log("\n=== Round Over ===");
+        console.log("Revealing hidden cards...");
+        // Add suspense before reveal
+        await this.delay(3000);
         // Reveal all face-down cards
         this.players[0].revealFaceDownCard();
         this.players[1].revealFaceDownCard();
@@ -190,6 +197,8 @@ export class Game {
         const score2 = player2.calculateTotalScore();
         console.log(`${player1.name}: ${player1.printHand()} = ${score1}`);
         console.log(`${player2.name}: ${player2.printHand()} = ${score2}`);
+        // Pause after showing scores
+        await this.delay(3000);
         // Determine round winner
         let roundWinner = null;
         let roundLoser = null;
@@ -210,8 +219,12 @@ export class Game {
             roundWinner = (Math.abs(21 - score1) < Math.abs(21 - score2)) ? player1 : player2;
         }
         console.log(`Round winner: ${roundWinner.name}`);
+        // Pause before showing kill machine movement
+        await this.delay(3000);
         // Update kill machine
         this.updateKillMachine(roundWinner);
+        // Pause after kill machine update
+        await this.delay(3000);
         // Check for game over
         this.checkGameOver();
         // Start next round if game continues
@@ -219,8 +232,14 @@ export class Game {
             this.roundNumber++;
             this.moveDistance++; // Increase move distance for next round
             this.currentPlayerIndex = 0; // Reset to player 1
+            // Pause before starting new round
+            await this.delay(3500);
             this.setupNewRound();
         }
+    }
+    // Helper method for delays
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
     // Move the kill machine
     updateKillMachine(roundWinner) {
