@@ -15,7 +15,8 @@ export class Game {
     roundNumber;
     player1Stayed;
     player2Stayed;
-    constructor(player1Name, player2Name) {
+    constructor(player1Name, player2Name, settings) {
+        //apply settings or use defaults
         this.deck = new Deck();
         this.players = [
             new Player(player1Name),
