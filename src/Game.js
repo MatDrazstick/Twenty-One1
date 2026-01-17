@@ -1,10 +1,14 @@
 import { Deck } from './Deck.js';
 import { Player } from './Players.js';
+import { AIPlayer } from './AIPlayer.js';
 export class Game {
     // Core game components
     deck;
     players;
     currentPlayerIndex; // 0 or 1
+    // Game mode
+    mode;
+    aiDifficulty;
     // Kill machine mechanic
     machineDistanceP1;
     machineDistanceP2;
@@ -15,23 +19,46 @@ export class Game {
     roundNumber;
     player1Stayed;
     player2Stayed;
-    constructor(player1Name, player2Name, settings) {
-        //apply settings or use defaults
+    constructor(player1Name, player2NameOrMode, aiDifficultyOrSettings, settings) {
+        // Initialize basic properties
         this.deck = new Deck();
-        this.players = [
-            new Player(player1Name),
-            new Player(player2Name)
-        ];
-        // Initialize kill machine
-        this.machineDistanceP1 = 7; // Starts 7 away from both players
+        this.machineDistanceP1 = 7;
         this.machineDistanceP2 = 7;
-        this.moveDistance = 1; // Increases by 1 each round
-        this.currentPlayerIndex = 0; // Player 1 starts
+        this.moveDistance = 1;
+        this.currentPlayerIndex = 0;
         this.gameOver = false;
         this.winner = null;
         this.roundNumber = 1;
         this.player1Stayed = false;
         this.player2Stayed = false;
+        // Determine which constructor signature was used and create players
+        // Check if second parameter is a game mode
+        if (player2NameOrMode === 'singleplayer' || player2NameOrMode === 'multiplayer') {
+            // New signature: (player1Name, mode, aiDifficulty?, settings?)
+            this.mode = player2NameOrMode;
+            if (this.mode === 'singleplayer') {
+                const difficulty = aiDifficultyOrSettings || 3;
+                this.aiDifficulty = difficulty;
+                this.players = [
+                    new Player(player1Name),
+                    new AIPlayer(difficulty)
+                ];
+            }
+            else {
+                this.players = [
+                    new Player(player1Name),
+                    new Player('Player 2')
+                ];
+            }
+        }
+        else {
+            // Old signature: (player1Name, player2Name, settings?)
+            this.mode = 'multiplayer';
+            this.players = [
+                new Player(player1Name),
+                new Player(player2NameOrMode)
+            ];
+        }
         this.setupNewRound();
     }
     // Initial deal for a round
@@ -47,6 +74,7 @@ export class Game {
         this.players.forEach(player => {
             player.hand = [];
             player.faceDownCard = null;
+            player.isBusted = false;
         });
         this.player1Stayed = false;
         this.player2Stayed = false;
@@ -124,6 +152,31 @@ export class Game {
     switchTurn() {
         this.currentPlayerIndex = 1 - this.currentPlayerIndex; // Flips 0↔1
         console.log(`\nNow it's ${this.players[this.currentPlayerIndex].name}'s turn.`);
+        // If it's AI's turn in single player mode, execute AI move
+        if (this.mode === 'singleplayer' && this.currentPlayerIndex === 1) {
+            this.executeAITurn();
+        }
+    }
+    // Execute AI player's turn
+    executeAITurn() {
+        const aiPlayer = this.players[1];
+        // Check if AI is an AIPlayer instance
+        if (!(aiPlayer instanceof AIPlayer)) {
+            console.error('Player 2 is not an AI player!');
+            return;
+        }
+        // AI makes decision
+        const opponentVisibleScore = this.players[0].calculateVisibleScore();
+        const deckCardsRemaining = this.deck.cardsRemaining();
+        const shouldHit = aiPlayer.shouldHit(opponentVisibleScore, deckCardsRemaining);
+        if (shouldHit) {
+            console.log(`${aiPlayer.name} decides to draw a card.`);
+            this.playerDraws();
+        }
+        else {
+            console.log(`${aiPlayer.name} decides to stay.`);
+            this.playerStays();
+        }
     }
     // End the round and determine winner
     endRound() {

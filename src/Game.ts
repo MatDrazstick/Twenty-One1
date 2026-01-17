@@ -1,16 +1,25 @@
 import { Deck } from './Deck.js';
 import { Player } from './Players.js';
 import { Card } from './Card.js';
+import { AIPlayer, AIDifficulty } from './AIPlayer.js';
+
+export type GameMode = 'singleplayer' | 'multiplayer';
+
 interface GameSettings {
   timerSeconds: number;  // 15-90
   moveDistanceMode: 'rise' | 'random';
   firstPlayer: 'player1' | 'player2' | 'random';
 }
+
 export class Game {
   // Core game components
   deck: Deck;
   players: Player[];
   currentPlayerIndex: number;  // 0 or 1
+  
+  // Game mode
+  mode: GameMode;
+  aiDifficulty?: AIDifficulty;
   
   // Kill machine mechanic
   machineDistanceP1: number;
@@ -24,25 +33,48 @@ export class Game {
   player1Stayed: boolean;
   player2Stayed: boolean;
   
-    constructor(player1Name: string, player2Name: string, settings?: GameSettings) {
-        //apply settings or use defaults
+  constructor(player1Name: string, player2Name: string, settings?: GameSettings);
+  constructor(player1Name: string, mode: GameMode, aiDifficulty?: AIDifficulty, settings?: GameSettings);
+  constructor(player1Name: string, player2NameOrMode: string | GameMode, aiDifficultyOrSettings?: AIDifficulty | GameSettings, settings?: GameSettings) {
+    // Initialize basic properties
     this.deck = new Deck();
-    this.players = [
-      new Player(player1Name),
-      new Player(player2Name)
-    ];
-    
-    // Initialize kill machine
-    this.machineDistanceP1 = 7;  // Starts 7 away from both players
+    this.machineDistanceP1 = 7;
     this.machineDistanceP2 = 7;
-    this.moveDistance = 1;  // Increases by 1 each round
-    
-    this.currentPlayerIndex = 0;  // Player 1 starts
+    this.moveDistance = 1;
+    this.currentPlayerIndex = 0;
     this.gameOver = false;
     this.winner = null;
     this.roundNumber = 1;
     this.player1Stayed = false;
     this.player2Stayed = false;
+    
+    // Determine which constructor signature was used and create players
+    // Check if second parameter is a game mode
+    if (player2NameOrMode === 'singleplayer' || player2NameOrMode === 'multiplayer') {
+      // New signature: (player1Name, mode, aiDifficulty?, settings?)
+      this.mode = player2NameOrMode;
+      
+      if (this.mode === 'singleplayer') {
+        const difficulty = (aiDifficultyOrSettings as AIDifficulty) || 3;
+        this.aiDifficulty = difficulty;
+        this.players = [
+          new Player(player1Name),
+          new AIPlayer(difficulty)
+        ];
+      } else {
+        this.players = [
+          new Player(player1Name),
+          new Player('Player 2')
+        ];
+      }
+    } else {
+      // Old signature: (player1Name, player2Name, settings?)
+      this.mode = 'multiplayer';
+      this.players = [
+        new Player(player1Name),
+        new Player(player2NameOrMode)
+      ];
+    }
     
     this.setupNewRound();
   }
@@ -62,6 +94,7 @@ export class Game {
     this.players.forEach(player => {
       player.hand = [];
       player.faceDownCard = null;
+      player.isBusted = false;
     });
     
     this.player1Stayed = false;
@@ -151,6 +184,36 @@ export class Game {
   private switchTurn(): void {
     this.currentPlayerIndex = 1 - this.currentPlayerIndex;  // Flips 0↔1
     console.log(`\nNow it's ${this.players[this.currentPlayerIndex].name}'s turn.`);
+    
+    // If it's AI's turn in single player mode, execute AI move
+    if (this.mode === 'singleplayer' && this.currentPlayerIndex === 1) {
+      this.executeAITurn();
+    }
+  }
+  
+  // Execute AI player's turn
+  private executeAITurn(): void {
+    const aiPlayer = this.players[1];
+    
+    // Check if AI is an AIPlayer instance
+    if (!(aiPlayer instanceof AIPlayer)) {
+      console.error('Player 2 is not an AI player!');
+      return;
+    }
+    
+    // AI makes decision
+    const opponentVisibleScore = this.players[0].calculateVisibleScore();
+    const deckCardsRemaining = this.deck.cardsRemaining();
+    
+    const shouldHit = aiPlayer.shouldHit(opponentVisibleScore, deckCardsRemaining);
+    
+    if (shouldHit) {
+      console.log(`${aiPlayer.name} decides to draw a card.`);
+      this.playerDraws();
+    } else {
+      console.log(`${aiPlayer.name} decides to stay.`);
+      this.playerStays();
+    }
   }
   
   // End the round and determine winner
