@@ -197,7 +197,7 @@ export class Game {
     
     // Check if AI is an AIPlayer instance
     if (!(aiPlayer instanceof AIPlayer)) {
-      console.error('Player 2 is not an AI player!');
+      console.error(`Expected AIPlayer instance for single player mode, but got: ${aiPlayer.constructor.name}`);
       return;
     }
     
