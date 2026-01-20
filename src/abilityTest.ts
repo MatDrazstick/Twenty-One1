@@ -1,5 +1,6 @@
 import { Game } from './Game.js';
 import { Player } from './Players.js';
+import { AIPlayer } from './AIPlayer.js';
 import { AbilityDeck } from './AbilityDeck.js';
 import { createAllAbilityCards, AbilityCategory } from './AbilityCard.js';
 
@@ -9,7 +10,7 @@ console.log("=== Ability Card System Tests ===\n");
 console.log("Test 1: Creating all ability cards...");
 const allCards = createAllAbilityCards();
 console.log(`Total ability cards created: ${allCards.length}`);
-console.log(`Expected: 27 cards (5 AddNumber + 7 DeckTrump + 9 BetAbility + 3 GoFor + 3 GoFor)`);
+console.log(`Expected: 24 cards (5 AddNumber + 7 DeckTrump + 9 BetAbility + 3 GoFor)`);
 
 const addNumberCards = allCards.filter(c => c.category === AbilityCategory.AddNumber);
 const deckTrumpCards = allCards.filter(c => c.category === AbilityCategory.DeckTrump);
@@ -465,10 +466,10 @@ const aiPlayer1 = gameAI1.players[1];
 const human1 = gameAI1.players[0];
 
 console.log(`AI abilities: ${aiPlayer1.printAbilityHand()}`);
-if (aiPlayer1 instanceof Player) {
+if (aiPlayer1 instanceof AIPlayer) {
   // Call chooseAbility multiple times to see randomness
   for (let i = 0; i < 5; i++) {
-    const choice = (aiPlayer1 as any).chooseAbility(gameAI1, human1);
+    const choice = aiPlayer1.chooseAbility(gameAI1, human1);
     console.log(`  Choice ${i + 1}: ${choice === -1 ? 'No ability' : aiPlayer1.abilityHand[choice]?.name}`);
   }
 }
@@ -483,8 +484,8 @@ const human5 = gameAI5.players[0];
 console.log(`AI abilities: ${aiPlayer5.printAbilityHand()}`);
 console.log(`AI score: ${aiPlayer5.calculateTotalScore()}`);
 console.log(`Human score: ${human5.calculateVisibleScore()}`);
-if (aiPlayer5 instanceof Player) {
-  const choice = (aiPlayer5 as any).chooseAbility(gameAI5, human5);
+if (aiPlayer5 instanceof AIPlayer) {
+  const choice = aiPlayer5.chooseAbility(gameAI5, human5);
   console.log(`AI choice: ${choice === -1 ? 'No ability' : aiPlayer5.abilityHand[choice]?.name}`);
 }
 console.log("✓ Test 26 passed!\n");
