@@ -3,11 +3,15 @@ class Player {
     hand;
     faceDownCard;
     isBusted;
+    abilityHand;
+    hasBless;
     constructor(name) {
         this.name = name;
         this.hand = [];
         this.faceDownCard = null;
         this.isBusted = false;
+        this.abilityHand = [];
+        this.hasBless = false;
     }
     // NEW: Check if player has busted (over 21)
     checkBust() {
@@ -20,6 +24,8 @@ class Player {
         this.hand = [];
         this.faceDownCard = null;
         this.isBusted = false;
+        this.abilityHand = [];
+        this.hasBless = false;
     }
     addCard(card) {
         this.hand.push(card);
@@ -52,6 +58,24 @@ class Player {
     }
     printHand() {
         return this.hand.map(card => card.toString()).join(', ');
+    }
+    // Print ability hand
+    printAbilityHand() {
+        return this.abilityHand.map((ability, index) => `${index + 1}. ${ability.name}`).join('\n');
+    }
+    // Use an ability card
+    useAbility(index, game, opponent) {
+        if (index < 0 || index >= this.abilityHand.length) {
+            console.log(`Invalid ability index.`);
+            return false;
+        }
+        const ability = this.abilityHand[index];
+        const success = ability.activate(game, this, opponent);
+        if (success) {
+            // Remove used ability from hand
+            this.abilityHand.splice(index, 1);
+        }
+        return success;
     }
 }
 export { Player };
