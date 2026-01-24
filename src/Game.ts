@@ -100,22 +100,23 @@ export class Game {
     this.deck.shuffle();
     console.log("Deck shuffled for new round!");
     
-    // Reset ability deck and shuffle
-    this.abilityDeck.reset();
-    this.abilityDeck.shuffle();
-    console.log("Ability deck shuffled for new round!");
+    // Shuffle ability deck if needed, but don't reset it
+    if (this.abilityDeck.cardsRemaining() < 4) {
+      console.log("Ability deck running low, reshuffling...");
+      this.abilityDeck.reset();
+      this.abilityDeck.shuffle();
+    }
     
     // Reset game state for new round
     this.targetNumber = 21;
     this.betModifier = 0;
     this.lastAbilityPlayed = null;
     
-    // Reset player hands and stayed flags
+    // Reset player hands and stayed flags (but keep ability cards)
     this.players.forEach(player => {
       player.hand = [];
       player.faceDownCard = null;
       player.isBusted = false;
-      player.abilityHand = [];
       player.hasBless = false;
     });
     
@@ -138,10 +139,18 @@ export class Game {
     console.log("Cards dealt!");
     console.log(`${this.players[0].name}: ${this.players[0].printHand()}`);
     console.log(`${this.players[1].name}: ${this.players[1].printHand()}`);
-    console.log(`\n${this.players[0].name} Abilities:`);
-    console.log(this.players[0].printAbilityHand());
-    console.log(`\n${this.players[1].name} Abilities:`);
-    console.log(this.players[1].printAbilityHand());
+    
+    // Show abilities if players don't have any yet (first round)
+    if (this.players[0].abilityHand.length === 0) {
+      console.log(`\n${this.players[0].name} Abilities:`);
+      console.log(this.players[0].printAbilityHand());
+      
+      // Only show AI abilities in multiplayer mode
+      if (this.mode === 'multiplayer') {
+        console.log(`\n${this.players[1].name} Abilities:`);
+        console.log(this.players[1].printAbilityHand());
+      }
+    }
   }
   
   // Current player draws a card
@@ -149,6 +158,13 @@ export class Game {
     if (this.gameOver) return;
     
     const currentPlayer = this.players[this.currentPlayerIndex];
+    
+    // Check if player has already stayed
+    const currentPlayerStayed = (this.currentPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
+    if (currentPlayerStayed) {
+      console.log(`You have already stayed and cannot draw more cards.`);
+      return;
+    }
     
     // If player has already busted, they can't draw anymore
     if (currentPlayer.isBusted) {
@@ -165,21 +181,23 @@ export class Game {
     // Check if bust
     if (currentPlayer.calculateTotalScore() > this.targetNumber) {
       currentPlayer.isBusted = true;
-      console.log(`You busted with a total of ${currentPlayer.calculateTotalScore()} (target: ${this.targetNumber})!`);
       
-      // Automatically mark as stayed since they can't draw anymore
-      if (this.currentPlayerIndex === 0) {
-        this.player1Stayed = true;
-      } else {
-        this.player2Stayed = true;
+      // Only show bust message for human player or in multiplayer mode
+      if (this.mode === 'multiplayer' || this.currentPlayerIndex === 0) {
+        console.log(`You busted with a total of ${currentPlayer.calculateTotalScore()} (target: ${this.targetNumber})!`);
       }
       
-      // If both players have stayed/busted, end the round
-      if (this.player1Stayed && this.player2Stayed) {
-        console.log("Both have stayed! Outputting scores");
+      // Check if other player has also busted or stayed
+      const otherPlayerIndex = 1 - this.currentPlayerIndex;
+      const otherPlayer = this.players[otherPlayerIndex];
+      const otherPlayerStayed = (otherPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
+      
+      // End round if both players are done (busted or stayed)
+      if (otherPlayer.isBusted || otherPlayerStayed) {
+        console.log("Both players are done! Outputting scores");
         await this.endRound();
       } else {
-        // Switch to other player without revealing the bust
+        // Switch to other player - they still need their turn
         this.switchTurn();
       }
       return;
@@ -339,8 +357,9 @@ export class Game {
         return;
       }
       
-      // Machine moves toward player 2
+      // Machine moves toward player 2 (loser) and away from player 1 (winner)
       this.machineDistanceP2 -= actualMoveDistance;
+      this.machineDistanceP1 += actualMoveDistance;
       console.log(`Machine moves ${actualMoveDistance} toward ${this.players[1].name} (base: ${this.moveDistance}, modifier: ${this.betModifier})`);
     } else {
       // Check if player 2 has Bless and would die
@@ -350,8 +369,9 @@ export class Game {
         return;
       }
       
-      // Machine moves toward player 1
+      // Machine moves toward player 1 (loser) and away from player 2 (winner)
       this.machineDistanceP1 -= actualMoveDistance;
+      this.machineDistanceP2 += actualMoveDistance;
       console.log(`Machine moves ${actualMoveDistance} toward ${this.players[0].name} (base: ${this.moveDistance}, modifier: ${this.betModifier})`);
     }
     

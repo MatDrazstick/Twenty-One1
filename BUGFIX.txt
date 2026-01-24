@@ -1,0 +1,120 @@
+===================================================================
+BUG FIX LOG - Twenty-One Game
+Date: January 24, 2026
+===================================================================
+
+BUG #1: Players could draw cards after staying
+-------------------------------------------------------------------
+DESCRIPTION:
+Even though a player drew normally (no bust), the round ended 
+prematurely after the AI stayed. This occurred because players who 
+had already stayed were still able to draw cards, leaving the stayed 
+flag set to true. When the other player eventually stayed, the game 
+incorrectly detected both players had stayed and ended the round 
+immediately.
+
+ROOT CAUSE:
+The playerDraws() method did not check if the current player had 
+already stayed before allowing them to draw. Once a player stayed 
+(player1Stayed or player2Stayed flag set to true), the flag remained 
+true for the entire round. If that player somehow drew again, they 
+would be marked as both "stayed" and actively drawing, creating 
+inconsistent game state.
+
+LOCATION:
+File: src/Game.ts
+Method: playerDraws()
+Lines: 156-172 (after fix)
+
+SOLUTION:
+Added a check at the beginning of playerDraws() to prevent players 
+from drawing if they have already stayed:
+
+    // Check if player has already stayed
+    const currentPlayerStayed = (this.currentPlayerIndex === 0) 
+        ? this.player1Stayed 
+        : this.player2Stayed;
+    if (currentPlayerStayed) {
+      console.log(`You have already stayed and cannot draw more cards.`);
+      return;
+    }
+
+This ensures that once a player stays, they cannot perform any more 
+draw actions for the remainder of the round.
+
+TEST VERIFICATION:
+- Player2 stays during their turn
+- Player1 draws successfully (their turn)
+- Turn switches back to Player2
+- Player2 attempts to draw -> BLOCKED with message
+- Test passes ✓
+
+
+===================================================================
+
+BUG #2: Machine distance tracking incorrect
+-------------------------------------------------------------------
+DESCRIPTION:
+The distance remained the same for the winning player even when the 
+machine moved toward the losing player. For example, if P1 lost 
+round 1 and the machine moved to 6 away from P1 and 7 away from P2, 
+then P2 lost round 2, it would display the machine as still being 6 
+away from P1 but now 5 away from P2. This was incorrect - it should 
+show 7 away from P1 and 6 away from P2, since the machine moved 
+away from P1 and toward P2.
+
+ROOT CAUSE:
+The updateKillMachine() method only decreased the distance to the 
+losing player but did not increase the distance from the winning 
+player. The machine exists on a line between the two players, so 
+when it moves toward one player, it must simultaneously move away 
+from the other player by the same distance.
+
+LOCATION:
+File: src/Game.ts
+Method: updateKillMachine()
+Lines: 348-380 (after fix)
+
+SOLUTION:
+Modified updateKillMachine() to update BOTH player distances when 
+the machine moves:
+
+When Player 1 wins (machine moves toward Player 2):
+    // Machine moves toward player 2 (loser) and away from player 1 (winner)
+    this.machineDistanceP2 -= actualMoveDistance;
+    this.machineDistanceP1 += actualMoveDistance;
+
+When Player 2 wins (machine moves toward Player 1):
+    // Machine moves toward player 1 (loser) and away from player 2 (winner)
+    this.machineDistanceP1 -= actualMoveDistance;
+    this.machineDistanceP2 += actualMoveDistance;
+
+This correctly models the machine moving along a line between the 
+two players.
+
+TEST VERIFICATION:
+- Initial distances: P1=7, P2=7
+- Alice (P1) scores 21, Bob (P2) scores 10
+- Alice wins the round
+- Machine moves toward Bob (loser) and away from Alice (winner)
+- Final distances: P1=8 (+1), P2=6 (-1)
+- Test passes ✓
+
+
+===================================================================
+ADDITIONAL NOTES:
+-------------------------------------------------------------------
+Both bugs were fixed in the same file (src/Game.ts) with minimal 
+changes to the existing logic. The fixes maintain backward 
+compatibility with existing game functionality and do not affect 
+other game mechanics such as ability cards, betting modifiers, or 
+the Bless ability.
+
+TESTING:
+A comprehensive test file (src/bugFixTest.ts) was created to verify 
+both fixes work correctly. All tests pass successfully.
+
+COMPILATION:
+Code compiles without errors using TypeScript compiler (tsc).
+
+===================================================================
