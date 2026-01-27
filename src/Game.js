@@ -1,11 +1,17 @@
 import { Deck } from './Deck.js';
 import { Player } from './Players.js';
 import { AIPlayer } from './AIPlayer.js';
+import { AbilityDeck } from './AbilityDeck.js';
 export class Game {
     // Core game components
     deck;
     players;
     currentPlayerIndex; // 0 or 1
+    // Ability card system
+    abilityDeck;
+    targetNumber;
+    betModifier;
+    lastAbilityPlayed;
     // Game mode
     mode;
     aiDifficulty;
@@ -22,6 +28,7 @@ export class Game {
     constructor(player1Name, player2NameOrMode, aiDifficultyOrSettings, settings) {
         // Initialize basic properties
         this.deck = new Deck();
+        this.abilityDeck = new AbilityDeck();
         this.machineDistanceP1 = 7;
         this.machineDistanceP2 = 7;
         this.moveDistance = 1;
@@ -31,6 +38,9 @@ export class Game {
         this.roundNumber = 1;
         this.player1Stayed = false;
         this.player2Stayed = false;
+        this.targetNumber = 21;
+        this.betModifier = 0;
+        this.lastAbilityPlayed = null;
         // Determine which constructor signature was used and create players
         // Check if second parameter is a game mode
         if (player2NameOrMode === 'singleplayer' || player2NameOrMode === 'multiplayer') {
@@ -69,11 +79,22 @@ export class Game {
         this.deck.reset();
         this.deck.shuffle();
         console.log("Deck shuffled for new round!");
-        // Reset player hands and stayed flags
+        // Shuffle ability deck if needed, but don't reset it
+        if (this.abilityDeck.cardsRemaining() < 4) {
+            console.log("Ability deck running low, reshuffling...");
+            this.abilityDeck.reset();
+            this.abilityDeck.shuffle();
+        }
+        // Reset game state for new round
+        this.targetNumber = 21;
+        this.betModifier = 0;
+        this.lastAbilityPlayed = null;
+        // Reset player hands and stayed flags (but keep ability cards)
         this.players.forEach(player => {
             player.hand = [];
             player.faceDownCard = null;
             player.isBusted = false;
+            player.hasBless = false;
         });
         this.player1Stayed = false;
         this.player2Stayed = false;
@@ -82,15 +103,36 @@ export class Game {
         this.players[1].setFaceDownCard(this.deck.dealCard(false));
         this.players[0].addCard(this.deck.dealCard(true));
         this.players[1].addCard(this.deck.dealCard(true));
+        // Deal 2 ability cards to each player
+        for (let i = 0; i < 2; i++) {
+            this.players[0].abilityHand.push(this.abilityDeck.dealCard());
+            this.players[1].abilityHand.push(this.abilityDeck.dealCard());
+        }
         console.log("Cards dealt!");
         console.log(`${this.players[0].name}: ${this.players[0].printHand()}`);
         console.log(`${this.players[1].name}: ${this.players[1].printHand()}`);
+        // Show abilities if players don't have any yet (first round)
+        if (this.players[0].abilityHand.length === 0) {
+            console.log(`\n${this.players[0].name} Abilities:`);
+            console.log(this.players[0].printAbilityHand());
+            // Only show AI abilities in multiplayer mode
+            if (this.mode === 'multiplayer') {
+                console.log(`\n${this.players[1].name} Abilities:`);
+                console.log(this.players[1].printAbilityHand());
+            }
+        }
     }
     // Current player draws a card
     async playerDraws() {
         if (this.gameOver)
             return;
         const currentPlayer = this.players[this.currentPlayerIndex];
+        // Check if player has already stayed
+        const currentPlayerStayed = (this.currentPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
+        if (currentPlayerStayed) {
+            console.log(`You have already stayed and cannot draw more cards.`);
+            return;
+        }
         // If player has already busted, they can't draw anymore
         if (currentPlayer.isBusted) {
             console.log(`You have busted and cannot draw more cards.`);
@@ -101,23 +143,23 @@ export class Game {
         console.log(`${currentPlayer.name} draws: ${newCard.toString()}`);
         console.log(`New total: ${currentPlayer.calculateVisibleScore()}`);
         // Check if bust
-        if (currentPlayer.calculateTotalScore() > 21) {
+        if (currentPlayer.calculateTotalScore() > this.targetNumber) {
             currentPlayer.isBusted = true;
-            console.log(`You busted with a total of ${currentPlayer.calculateTotalScore()}!`);
-            // Automatically mark as stayed since they can't draw anymore
-            if (this.currentPlayerIndex === 0) {
-                this.player1Stayed = true;
+            // Only show bust message for human player or in multiplayer mode
+            if (this.mode === 'multiplayer' || this.currentPlayerIndex === 0) {
+                console.log(`You busted with a total of ${currentPlayer.calculateTotalScore()} (target: ${this.targetNumber})!`);
             }
-            else {
-                this.player2Stayed = true;
-            }
-            // If both players have stayed/busted, end the round
-            if (this.player1Stayed && this.player2Stayed) {
-                console.log("Both have stayed! Outputting scores");
+            // Check if other player has also busted or stayed
+            const otherPlayerIndex = 1 - this.currentPlayerIndex;
+            const otherPlayer = this.players[otherPlayerIndex];
+            const otherPlayerStayed = (otherPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
+            // End round if both players are done (busted or stayed)
+            if (otherPlayer.isBusted || otherPlayerStayed) {
+                console.log("Both players are done! Outputting scores");
                 await this.endRound();
             }
             else {
-                // Switch to other player without revealing the bust
+                // Switch to other player - they still need their turn
                 this.switchTurn();
             }
             return;
@@ -202,23 +244,23 @@ export class Game {
         // Determine round winner
         let roundWinner = null;
         let roundLoser = null;
-        if (score1 > 21 && score2 > 21) {
-            // Both bust - closer to 21 wins
-            roundWinner = (21 - score1 < 21 - score2) ? player1 : player2;
+        if (score1 > this.targetNumber && score2 > this.targetNumber) {
+            // Both bust - closer to target wins
+            roundWinner = (this.targetNumber - score1 < this.targetNumber - score2) ? player1 : player2;
         }
-        else if (score1 > 21) {
+        else if (score1 > this.targetNumber) {
             roundWinner = player2;
             roundLoser = player1;
         }
-        else if (score2 > 21) {
+        else if (score2 > this.targetNumber) {
             roundWinner = player1;
             roundLoser = player2;
         }
         else {
-            // Neither bust - closer to 21 wins
-            roundWinner = (Math.abs(21 - score1) < Math.abs(21 - score2)) ? player1 : player2;
+            // Neither bust - closer to target wins
+            roundWinner = (Math.abs(this.targetNumber - score1) < Math.abs(this.targetNumber - score2)) ? player1 : player2;
         }
-        console.log(`Round winner: ${roundWinner.name}`);
+        console.log(`Round winner: ${roundWinner.name} (Target: ${this.targetNumber})`);
         // Pause before showing kill machine movement
         await this.delay(3000);
         // Update kill machine
@@ -243,15 +285,30 @@ export class Game {
     }
     // Move the kill machine
     updateKillMachine(roundWinner) {
+        const actualMoveDistance = this.moveDistance + this.betModifier;
         if (roundWinner === this.players[0]) {
-            // Machine moves toward player 2
-            this.machineDistanceP2 -= this.moveDistance;
-            console.log(`Machine moves ${this.moveDistance} toward ${this.players[1].name}`);
+            // Check if player 1 has Bless and would die
+            if (this.players[1].hasBless && this.machineDistanceP2 - actualMoveDistance <= 0) {
+                console.log(`${this.players[1].name} uses Bless to avoid death!`);
+                this.players[1].hasBless = false;
+                return;
+            }
+            // Machine moves toward player 2 (loser) and away from player 1 (winner)
+            this.machineDistanceP2 -= actualMoveDistance;
+            this.machineDistanceP1 += actualMoveDistance;
+            console.log(`Machine moves ${actualMoveDistance} toward ${this.players[1].name} (base: ${this.moveDistance}, modifier: ${this.betModifier})`);
         }
         else {
-            // Machine moves toward player 1
-            this.machineDistanceP1 -= this.moveDistance;
-            console.log(`Machine moves ${this.moveDistance} toward ${this.players[0].name}`);
+            // Check if player 2 has Bless and would die
+            if (this.players[0].hasBless && this.machineDistanceP1 - actualMoveDistance <= 0) {
+                console.log(`${this.players[0].name} uses Bless to avoid death!`);
+                this.players[0].hasBless = false;
+                return;
+            }
+            // Machine moves toward player 1 (loser) and away from player 2 (winner)
+            this.machineDistanceP1 -= actualMoveDistance;
+            this.machineDistanceP2 += actualMoveDistance;
+            console.log(`Machine moves ${actualMoveDistance} toward ${this.players[0].name} (base: ${this.moveDistance}, modifier: ${this.betModifier})`);
         }
         console.log(`Machine distances: P1=${this.machineDistanceP1}, P2=${this.machineDistanceP2}`);
     }

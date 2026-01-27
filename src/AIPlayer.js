@@ -1,4 +1,5 @@
 import { Player } from './Players.js';
+import { AbilityCategory } from './AbilityCard.js';
 export class AIPlayer extends Player {
     difficulty;
     constructor(difficulty) {
@@ -95,5 +96,187 @@ export class AIPlayer extends Player {
             return false;
         }
         return true;
+    }
+    /**
+     * Decide which ability card to use (if any)
+     * @param game - The game instance
+     * @param opponent - The opponent player
+     * @returns The index of the ability to use, or -1 if no ability should be used
+     */
+    chooseAbility(game, opponent) {
+        if (this.abilityHand.length === 0) {
+            return -1;
+        }
+        const myScore = this.calculateTotalScore();
+        const opponentVisibleScore = opponent.calculateVisibleScore();
+        const targetNumber = game.targetNumber || 21;
+        switch (this.difficulty) {
+            case 1:
+                // Level 1: Random - 30% chance to use any ability
+                if (Math.random() < 0.3) {
+                    return Math.floor(Math.random() * this.abilityHand.length);
+                }
+                return -1;
+            case 2:
+                // Level 2: Basic strategy - use simple abilities
+                return this.basicAbilityStrategy(game, opponent, myScore, opponentVisibleScore, targetNumber);
+            case 3:
+                // Level 3: Conservative strategy - use defensive abilities
+                return this.conservativeAbilityStrategy(game, opponent, myScore, opponentVisibleScore, targetNumber);
+            case 4:
+                // Level 4: Smart strategy - use abilities tactically
+                return this.smartAbilityStrategy(game, opponent, myScore, opponentVisibleScore, targetNumber);
+            case 5:
+                // Level 5: Advanced strategy - optimal ability usage
+                return this.advancedAbilityStrategy(game, opponent, myScore, opponentVisibleScore, targetNumber);
+            default:
+                return -1;
+        }
+    }
+    /**
+     * Level 2: Basic ability strategy
+     */
+    basicAbilityStrategy(game, opponent, myScore, opponentScore, target) {
+        // Look for simple beneficial abilities
+        for (let i = 0; i < this.abilityHand.length; i++) {
+            const ability = this.abilityHand[i];
+            // Use Add Number abilities if we need that specific card
+            if (ability.category === AbilityCategory.AddNumber && ability.value) {
+                const needed = target - myScore;
+                if (ability.value === needed || (ability.value < needed && myScore < 15)) {
+                    return i;
+                }
+            }
+            // Use Perfect Draw if we're far from target
+            if (ability.name === 'Perfect Draw' && myScore < target - 3) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    /**
+     * Level 3: Conservative ability strategy
+     */
+    conservativeAbilityStrategy(game, opponent, myScore, opponentScore, target) {
+        // Prioritize defensive and safe abilities
+        for (let i = 0; i < this.abilityHand.length; i++) {
+            const ability = this.abilityHand[i];
+            // Use Shield if we're losing and machine is close
+            if ((ability.name === 'Shield' || ability.name === 'Shield-Plus') && game.machineDistanceP2 <= 3) {
+                return i;
+            }
+            // Use Bless if we're in danger
+            if (ability.name === 'Bless' && game.machineDistanceP2 <= 2) {
+                return i;
+            }
+            // Use Perfect Draw if safe
+            if (ability.name === 'Perfect Draw' && myScore < target - 2) {
+                return i;
+            }
+            // Use Return if we drew too high
+            if (ability.name === 'Return' && myScore > target - 3) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    /**
+     * Level 4: Smart ability strategy
+     */
+    smartAbilityStrategy(game, opponent, myScore, opponentScore, target) {
+        // Use abilities tactically based on game state
+        for (let i = 0; i < this.abilityHand.length; i++) {
+            const ability = this.abilityHand[i];
+            // Offensive: Use Disservice if opponent is close to target
+            if (ability.name === 'Disservice' && opponentScore >= target - 3) {
+                return i;
+            }
+            // Use Remove if opponent just drew a good card
+            if (ability.name === 'Remove' && opponentScore > myScore) {
+                return i;
+            }
+            // Use One-Up or Two-Up if we're winning
+            if ((ability.name === 'One-Up' || ability.name === 'Two-Up') && myScore > opponentScore) {
+                return i;
+            }
+            // Use Go For abilities strategically
+            if (ability.name === 'Go For 17' && myScore >= 15 && myScore < 18) {
+                return i;
+            }
+            // Use Destroy if opponent used a beneficial ability
+            if (ability.name === 'Destroy' && game.lastAbilityPlayed && game.lastAbilityPlayed.player !== this) {
+                return i;
+            }
+            // Use Perfect Draw if we need it
+            if (ability.name === 'Perfect Draw' && myScore < target - 3) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    /**
+     * Level 5: Advanced ability strategy
+     */
+    advancedAbilityStrategy(game, opponent, myScore, opponentScore, target) {
+        // Optimal ability usage with complex decision-making
+        const machineDistance = game.machineDistanceP2;
+        const needed = target - myScore;
+        // Calculate urgency
+        const urgency = machineDistance <= 2 ? 'high' : machineDistance <= 4 ? 'medium' : 'low';
+        for (let i = 0; i < this.abilityHand.length; i++) {
+            const ability = this.abilityHand[i];
+            // High urgency: Survival abilities
+            if (urgency === 'high') {
+                if (ability.name === 'Bless')
+                    return i;
+                if (ability.name === 'Shield-Plus')
+                    return i;
+                if (ability.name === 'Shield')
+                    return i;
+            }
+            // Strategic Go For usage
+            if (ability.name === 'Go For 17' && myScore >= 15 && myScore <= 17 && opponentScore < 15) {
+                return i;
+            }
+            if (ability.name === 'Go For 24' && myScore >= 20 && myScore <= 24 && opponentScore < 20) {
+                return i;
+            }
+            // Perfect card selection
+            if (ability.category === AbilityCategory.AddNumber && ability.value) {
+                if (ability.value === needed) {
+                    return i; // Exact card we need
+                }
+            }
+            // Aggressive plays when winning
+            if (myScore > opponentScore) {
+                if (ability.name === 'Disservice')
+                    return i;
+                if (ability.name === 'Two-Up')
+                    return i;
+                if (ability.name === 'Remove')
+                    return i;
+            }
+            // Comeback plays when losing
+            if (opponentScore > myScore + 3) {
+                if (ability.name === 'Perfect Draw' && needed > 0)
+                    return i;
+                if (ability.name === 'Refresh')
+                    return i;
+                if (ability.name === 'Exchange')
+                    return i;
+            }
+            // Nullify opponent advantages
+            if (ability.name === 'Destroy' && game.lastAbilityPlayed) {
+                const lastAbility = game.lastAbilityPlayed.ability;
+                if (lastAbility === 'One-Up' || lastAbility === 'Two-Up' || lastAbility.startsWith('Go For')) {
+                    return i;
+                }
+            }
+            // Safe improvement
+            if (ability.name === 'Perfect Draw' && needed >= 4) {
+                return i;
+            }
+        }
+        return -1;
     }
 }

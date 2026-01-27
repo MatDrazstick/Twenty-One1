@@ -57,22 +57,62 @@ async function playGame() {
       console.log(`Opponent's visible score: ${game.players[1].calculateVisibleScore()}`);
       console.log(`\nKill Machine - Distance to you: ${game.machineDistanceP1}, Distance to AI: ${game.machineDistanceP2}`);
       
-      // Check if player has busted
-      if (currentPlayer.isBusted) {
-        console.log("You have busted! Turn automatically passed.");
+      // Check if player has busted and already stayed
+      if (currentPlayer.isBusted && game.player1Stayed) {
+        console.log("You have busted! Waiting for opponent's turn...");
         await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }
       
+      // Show available actions
+      let prompt = "\nChoose action: (d)raw, (s)tay";
+      if (currentPlayer.abilityHand.length > 0) {
+        prompt += ", (a)bility cards";
+      }
+      prompt += ": ";
+      
       // Ask for player action
-      const action = await askQuestion("\nDo you want to (d)raw or (s)tay? ");
+      const action = await askQuestion(prompt);
       
       if (action === 'd' || action === 'draw') {
+        if (currentPlayer.isBusted) {
+          console.log("You have busted and cannot draw more cards.");
+          continue;
+        }
         await game.playerDraws();
       } else if (action === 's' || action === 'stay') {
         await game.playerStays();
+      } else if (action === 'a' || action === 'ability' || action === 'ability cards') {
+        // Show ability cards
+        if (currentPlayer.abilityHand.length === 0) {
+          console.log("You don't have any ability cards!");
+          continue;
+        }
+        
+        console.log("\n=== Your Ability Cards ===");
+        console.log(currentPlayer.printAbilityHand());
+        console.log(`\nEnter ability number to use (1-${currentPlayer.abilityHand.length}), or 'b' to go back:`);
+        
+        const abilityChoice = await askQuestion("Choice: ");
+        if (abilityChoice === 'b' || abilityChoice === 'back') {
+          continue;
+        }
+        
+        const abilityIndex = parseInt(abilityChoice) - 1;
+        if (isNaN(abilityIndex) || abilityIndex < 0 || abilityIndex >= currentPlayer.abilityHand.length) {
+          console.log("Invalid ability choice!");
+          continue;
+        }
+        
+        // Use the ability
+        const opponent = game.players[1];
+        const result = currentPlayer.useAbility(abilityIndex, game, opponent);
+        if (result) {
+          console.log(`Successfully used ability!`);
+          // Don't auto-switch turn after using ability, let player choose next action
+        }
       } else {
-        console.log("Invalid input! Please enter 'd' for draw or 's' for stay.");
+        console.log("Invalid input! Please enter 'd' for draw, 's' for stay, or 'a' for ability cards.");
         continue;
       }
     } else {
