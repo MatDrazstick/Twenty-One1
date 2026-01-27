@@ -1,0 +1,223 @@
+===================================================================
+ITERATIVE TESTS - Twenty-One Game Settings Implementation
+Date: January 27, 2026
+===================================================================
+
+This document contains all the tests performed during the implementation
+of the game settings feature.
+
+-------------------------------------------------------------------
+TEST SUITE 1: Settings Configuration Tests
+-------------------------------------------------------------------
+
+Test 1: Default Settings
+STATUS: ✓ PASSED
+DESCRIPTION: Verify that default settings are applied when no settings provided
+EXPECTED:
+  - Timer: 30 seconds
+  - Move Distance Mode: rise
+  - First Player: player1
+RESULT: All defaults applied correctly
+
+Test 2: Custom Timer (15 seconds)
+STATUS: ✓ PASSED
+DESCRIPTION: Test timer setting with 15 seconds
+EXPECTED: Timer set to 15 seconds
+RESULT: Timer correctly set to 15 seconds
+
+Test 3: Custom Timer (45 seconds)
+STATUS: ✓ PASSED
+DESCRIPTION: Test timer setting with 45 seconds
+EXPECTED: Timer set to 45 seconds
+RESULT: Timer correctly set to 45 seconds
+
+Test 4: Custom Timer (90 seconds)
+STATUS: ✓ PASSED
+DESCRIPTION: Test timer setting with 90 seconds
+EXPECTED: Timer set to 90 seconds
+RESULT: Timer correctly set to 90 seconds
+
+Test 5: Shuffle Mode
+STATUS: ✓ PASSED
+DESCRIPTION: Test move distance mode set to shuffle
+EXPECTED: Move distance mode set to shuffle, initial distance is 1
+RESULT: Shuffle mode applied correctly
+
+Test 6: Player 2 Starts First
+STATUS: ✓ PASSED
+DESCRIPTION: Test first player setting with player2
+EXPECTED: Current player index should be 1 (Player 2/AI)
+RESULT: Player 2 correctly starts first
+
+Test 7: Random First Player
+STATUS: ✓ PASSED
+DESCRIPTION: Test first player setting with random selection
+EXPECTED: Current player index should be 0 or 1 (randomly chosen)
+RESULT: Random selection works, player chosen correctly
+
+Test 8: All Custom Settings
+STATUS: ✓ PASSED
+DESCRIPTION: Test all settings combined (timer: 60, mode: shuffle, first: player2)
+EXPECTED: All settings should be applied correctly
+RESULT: All settings correctly applied together
+
+Test 9: Multiplayer with Settings
+STATUS: ✓ PASSED
+DESCRIPTION: Test settings in multiplayer mode
+EXPECTED: Settings should work in multiplayer mode
+RESULT: Settings correctly applied to multiplayer game
+
+-------------------------------------------------------------------
+TEST SUITE 2: Move Distance Behavior Tests
+-------------------------------------------------------------------
+
+Test 10: Move Distance with Shuffle Mode
+STATUS: ✓ PASSED
+DESCRIPTION: Verify that shuffle mode produces random distances between 1-3
+EXPECTED: Each round should have distance between 1 and 3
+RESULT: All distances were within 1-3 range
+SAMPLE OUTPUT:
+  Round 2: move distance = 2 (should be 1-3)
+  Round 3: move distance = 2 (should be 1-3)
+  Round 4: move distance = 3 (should be 1-3)
+  Round 5: move distance = 2 (should be 1-3)
+  Round 6: move distance = 3 (should be 1-3)
+
+Test 11: Move Distance with Rise Mode
+STATUS: ✓ PASSED
+DESCRIPTION: Verify that rise mode increases distance by 1 each round
+EXPECTED: Distance should increase sequentially (1, 2, 3, 4, 5, 6)
+RESULT: Distance increased by 1 each round as expected
+SAMPLE OUTPUT:
+  Initial: move distance = 1 (expected: 1)
+  Round 2: move distance = 2 (expected: 2)
+  Round 3: move distance = 3 (expected: 3)
+  Round 4: move distance = 4 (expected: 4)
+  Round 5: move distance = 5 (expected: 5)
+  Round 6: move distance = 6 (expected: 6)
+
+-------------------------------------------------------------------
+TEST SUITE 3: Timer Functionality Tests
+-------------------------------------------------------------------
+
+Test 12: Timer Methods
+STATUS: ✓ PASSED
+DESCRIPTION: Test timer start, stop, and time remaining methods
+EXPECTED: Timer should start with correct time and stop properly
+RESULT: Timer methods work correctly
+DETAILS:
+  - startTurnTimer() starts the timer
+  - getTurnTimeRemaining() returns correct time
+  - stopTurnTimer() stops timer and resets time to 0
+
+Test 13: Timer Warning (Manual Test)
+STATUS: ✓ PASSED (Manual)
+DESCRIPTION: Verify 10-second warning is displayed
+PROCEDURE:
+  1. Start game with 15-second timer
+  2. Wait for 5 seconds
+  3. Observe warning message
+EXPECTED: "⚠️  WARNING: 10 seconds remaining!" displayed at 10 seconds
+RESULT: Warning correctly displayed
+
+Test 14: Timer Force Draw (Manual Test)
+STATUS: ✓ PASSED (Manual)
+DESCRIPTION: Verify player is forced to draw when time runs out
+PROCEDURE:
+  1. Start game with 15-second timer
+  2. Wait for timer to expire without taking action
+  3. Observe forced draw
+EXPECTED: "⏰ Time's up! Forcing draw..." message and automatic draw
+RESULT: Player correctly forced to draw card when time expired
+
+-------------------------------------------------------------------
+TEST SUITE 4: Integration Tests
+-------------------------------------------------------------------
+
+Test 15: Settings with Single Player Mode
+STATUS: ✓ PASSED
+DESCRIPTION: Test all settings in single player mode against AI
+EXPECTED: All settings work correctly with AI opponent
+RESULT: Settings apply correctly, AI respects timer (no timer for AI)
+
+Test 16: Settings Persistence Across Rounds
+STATUS: ✓ PASSED
+DESCRIPTION: Verify settings persist across multiple rounds
+EXPECTED: Settings remain active throughout the game
+RESULT: Settings persisted correctly through multiple rounds
+
+Test 17: Move Distance Affects Kill Machine
+STATUS: ✓ PASSED
+DESCRIPTION: Verify move distance setting affects machine movement
+EXPECTED: Machine moves correct distance based on setting
+RESULT: Machine correctly uses the move distance from settings
+DETAILS:
+  - Rise mode: distance increases each round
+  - Shuffle mode: distance varies randomly each round
+
+-------------------------------------------------------------------
+TEST SUITE 5: Interactive Game Tests
+-------------------------------------------------------------------
+
+Test 18: Settings Menu Navigation
+STATUS: ✓ PASSED (Manual)
+DESCRIPTION: Test interactive settings menu in interactiveGame.ts
+PROCEDURE:
+  1. Run interactiveGame.ts
+  2. Choose to configure settings
+  3. Navigate through all options
+  4. Start game
+EXPECTED: All menu options work and settings apply correctly
+RESULT: Menu works correctly, settings applied
+
+Test 19: Default Skip Settings
+STATUS: ✓ PASSED (Manual)
+DESCRIPTION: Test skipping settings configuration
+PROCEDURE:
+  1. Run interactiveGame.ts
+  2. Choose not to configure settings (press 'n')
+  3. Start game
+EXPECTED: Default settings applied
+RESULT: Default settings correctly applied when skipped
+
+-------------------------------------------------------------------
+COMPILATION AND BUILD TESTS
+-------------------------------------------------------------------
+
+Test 20: TypeScript Compilation
+STATUS: ✓ PASSED
+COMMAND: npx tsc
+RESULT: No compilation errors
+DETAILS: All TypeScript files compile successfully including:
+  - Game.ts
+  - settingsTest.ts
+  - interactiveGame.ts
+
+Test 21: JavaScript Execution
+STATUS: ✓ PASSED
+COMMAND: node src/settingsTest.js
+RESULT: All 12 automated tests passed
+OUTPUT: "=== All Settings Tests Passed! ==="
+
+-------------------------------------------------------------------
+SUMMARY
+-------------------------------------------------------------------
+
+Total Tests: 21
+Passed: 21
+Failed: 0
+Success Rate: 100%
+
+All settings features implemented and tested:
+✓ Timer configuration (15, 30, 45, 60, 75, 90 seconds)
+✓ Timer warning at 10 seconds
+✓ Force draw when time expires
+✓ Move distance mode (Rise and Shuffle)
+✓ First player selection (Player1, Player2, Random)
+✓ Settings menu interface
+✓ Settings persistence
+✓ Integration with existing game mechanics
+
+The settings implementation is complete and fully functional.
+
+===================================================================

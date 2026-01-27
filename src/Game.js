@@ -25,6 +25,12 @@ export class Game {
     roundNumber;
     player1Stayed;
     player2Stayed;
+    // Settings
+    settings;
+    // Timer state
+    turnTimer;
+    turnStartTime;
+    turnTimeRemaining;
     constructor(player1Name, player2NameOrMode, aiDifficultyOrSettings, settings) {
         // Initialize basic properties
         this.deck = new Deck();
@@ -41,11 +47,25 @@ export class Game {
         this.targetNumber = 21;
         this.betModifier = 0;
         this.lastAbilityPlayed = null;
+        // Initialize timer state
+        this.turnTimer = null;
+        this.turnStartTime = null;
+        this.turnTimeRemaining = 0;
+        // Initialize default settings
+        this.settings = {
+            timerSeconds: 30,
+            moveDistanceMode: 'rise',
+            firstPlayer: 'player1'
+        };
         // Determine which constructor signature was used and create players
         // Check if second parameter is a game mode
         if (player2NameOrMode === 'singleplayer' || player2NameOrMode === 'multiplayer') {
             // New signature: (player1Name, mode, aiDifficulty?, settings?)
             this.mode = player2NameOrMode;
+            // Extract settings if provided
+            if (settings) {
+                this.settings = { ...this.settings, ...settings };
+            }
             if (this.mode === 'singleplayer') {
                 const difficulty = aiDifficultyOrSettings || 3;
                 this.aiDifficulty = difficulty;
@@ -68,6 +88,17 @@ export class Game {
                 new Player(player1Name),
                 new Player(player2NameOrMode)
             ];
+            // Extract settings if provided (aiDifficultyOrSettings is actually settings here)
+            if (aiDifficultyOrSettings && typeof aiDifficultyOrSettings === 'object') {
+                this.settings = { ...this.settings, ...aiDifficultyOrSettings };
+            }
+        }
+        // Set initial player based on settings
+        if (this.settings.firstPlayer === 'player2') {
+            this.currentPlayerIndex = 1;
+        }
+        else if (this.settings.firstPlayer === 'random') {
+            this.currentPlayerIndex = Math.random() < 0.5 ? 0 : 1;
         }
         this.setupNewRound();
     }
@@ -121,6 +152,8 @@ export class Game {
                 console.log(this.players[1].printAbilityHand());
             }
         }
+        // Start timer for the current player
+        this.startTurnTimer();
     }
     // Current player draws a card
     async playerDraws() {
@@ -191,8 +224,12 @@ export class Game {
     }
     // Switch to next player
     switchTurn() {
+        // Stop the current player's timer
+        this.stopTurnTimer();
         this.currentPlayerIndex = 1 - this.currentPlayerIndex; // Flips 0↔1
         console.log(`\nNow it's ${this.players[this.currentPlayerIndex].name}'s turn.`);
+        // Start timer for the new player (if not AI)
+        this.startTurnTimer();
         // Note: AI turn is now controlled manually from the game loop
         // This allows for better control in interactive mode
     }
@@ -272,8 +309,26 @@ export class Game {
         // Start next round if game continues
         if (!this.gameOver) {
             this.roundNumber++;
-            this.moveDistance++; // Increase move distance for next round
-            this.currentPlayerIndex = 0; // Reset to player 1
+            // Update move distance based on settings
+            if (this.settings.moveDistanceMode === 'shuffle') {
+                // Random distance between 1 and 3
+                this.moveDistance = Math.floor(Math.random() * 3) + 1;
+                console.log(`Move distance shuffled to: ${this.moveDistance}`);
+            }
+            else {
+                // Rise mode: increase by 1 each round (default)
+                this.moveDistance++;
+            }
+            // Reset to first player based on settings
+            if (this.settings.firstPlayer === 'player2') {
+                this.currentPlayerIndex = 1;
+            }
+            else if (this.settings.firstPlayer === 'random') {
+                this.currentPlayerIndex = Math.random() < 0.5 ? 0 : 1;
+            }
+            else {
+                this.currentPlayerIndex = 0;
+            }
             // Pause before starting new round
             await this.delay(3500);
             this.setupNewRound();
@@ -324,5 +379,49 @@ export class Game {
             this.winner = this.players[0]; // Player 1 wins
             console.log(`\nGAME OVER! ${this.players[0].name} wins!`);
         }
+    }
+    // Start turn timer
+    startTurnTimer() {
+        // Clear any existing timer
+        this.stopTurnTimer();
+        // Skip timer for AI players
+        if (this.players[this.currentPlayerIndex] instanceof AIPlayer) {
+            return;
+        }
+        const timerSeconds = this.settings.timerSeconds || 30;
+        this.turnStartTime = Date.now();
+        this.turnTimeRemaining = timerSeconds;
+        console.log(`\nTimer started: ${timerSeconds} seconds`);
+        // Set up timer to check every second
+        this.turnTimer = setInterval(() => {
+            if (!this.turnStartTime)
+                return;
+            const elapsed = Math.floor((Date.now() - this.turnStartTime) / 1000);
+            this.turnTimeRemaining = timerSeconds - elapsed;
+            // Warn at 10 seconds
+            if (this.turnTimeRemaining === 10) {
+                console.log(`\n⚠️  WARNING: 10 seconds remaining!`);
+            }
+            // Time's up - force draw
+            if (this.turnTimeRemaining <= 0) {
+                console.log(`\n⏰ Time's up! Forcing draw...`);
+                this.stopTurnTimer();
+                // Force the player to draw
+                this.playerDraws().catch(err => console.error('Error forcing draw:', err));
+            }
+        }, 1000);
+    }
+    // Stop turn timer
+    stopTurnTimer() {
+        if (this.turnTimer) {
+            clearInterval(this.turnTimer);
+            this.turnTimer = null;
+            this.turnStartTime = null;
+            this.turnTimeRemaining = 0;
+        }
+    }
+    // Get remaining time for current turn
+    getTurnTimeRemaining() {
+        return this.turnTimeRemaining;
     }
 }
