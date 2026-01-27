@@ -1,6 +1,8 @@
 import { Game } from './Game.js';
 console.log("=== Move Distance Shuffle Test ===\n");
 async function testShuffleMode() {
+    const SHUFFLE_MIN_DISTANCE = 1;
+    const SHUFFLE_MAX_DISTANCE = 3;
     // Create a game with shuffle mode
     const settings = { moveDistanceMode: 'shuffle' };
     const game = new Game("Player1", "Player2", settings);
@@ -18,14 +20,14 @@ async function testShuffleMode() {
         else {
             game.moveDistance++;
         }
-        console.log(`Round ${i}: move distance = ${game.moveDistance} (should be 1-3 for shuffle)`);
+        console.log(`Round ${i}: move distance = ${game.moveDistance} (should be ${SHUFFLE_MIN_DISTANCE}-${SHUFFLE_MAX_DISTANCE} for shuffle)`);
         // Verify distance is in valid range
-        if (game.moveDistance < 1 || game.moveDistance > 3) {
+        if (game.moveDistance < SHUFFLE_MIN_DISTANCE || game.moveDistance > SHUFFLE_MAX_DISTANCE) {
             console.error(`ERROR: Invalid distance ${game.moveDistance}`);
             process.exit(1);
         }
     }
-    console.log("\n✓ All shuffle distances within valid range (1-3)");
+    console.log(`\n✓ All shuffle distances within valid range (${SHUFFLE_MIN_DISTANCE}-${SHUFFLE_MAX_DISTANCE})`);
     // Test Rise mode
     console.log("\n=== Testing Rise Mode ===");
     const settings2 = { moveDistanceMode: 'rise' };

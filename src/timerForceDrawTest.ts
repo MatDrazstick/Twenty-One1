@@ -13,13 +13,13 @@ async function testTimerForceDraw() {
   console.log(`Player visible score: ${game.players[0].calculateVisibleScore()}`);
   
   // Wait for timer to show warning (at 10 seconds)
-  console.log("\nWaiting 5 seconds to trigger 10-second warning...");
+  console.log("\nWaiting 6 seconds to trigger 10-second warning...");
   await new Promise(resolve => setTimeout(resolve, 6000));
   
   console.log(`Time remaining: ${game.getTurnTimeRemaining()} seconds`);
   
   // Wait for timer to expire
-  console.log("\nWaiting for timer to expire (9 more seconds)...");
+  console.log("\nWaiting for timer to expire (10 more seconds)...");
   await new Promise(resolve => setTimeout(resolve, 10000));
   
   console.log(`\nAfter timeout:`);
