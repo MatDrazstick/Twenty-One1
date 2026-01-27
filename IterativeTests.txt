@@ -180,6 +180,108 @@ PROCEDURE:
 EXPECTED: Default settings applied
 RESULT: Default settings correctly applied when skipped
 
+Test 20: Timer Force Draw Full Test
+STATUS: ✓ PASSED (Automated)
+DESCRIPTION: Complete test of timer force draw with 15-second timer
+FILE: src/timerForceDrawTest.ts
+PROCEDURE:
+  1. Create game with 15-second timer
+  2. Wait 6 seconds to trigger 10-second warning
+  3. Wait 10 more seconds for timeout
+  4. Verify player was forced to draw
+EXPECTED:
+  - Warning at 10 seconds: "⚠️  WARNING: 10 seconds remaining!"
+  - Force draw at 0 seconds: "⏰ Time's up! Forcing draw..."
+  - Player hand should have one more card
+RESULT: All expectations met, timer worked perfectly
+OUTPUT:
+  Time remaining: 10 seconds
+  ⚠️  WARNING: 10 seconds remaining!
+  ⏰ Time's up! Forcing draw...
+  TestPlayer draws: [5]
+  Player visible score increased from 1 to 6
+
+Test 21: Move Distance Modes Full Test
+STATUS: ✓ PASSED (Automated)
+DESCRIPTION: Complete test of both move distance modes
+FILE: src/moveDistanceTest.ts
+PROCEDURE:
+  1. Test shuffle mode over 10 rounds
+  2. Verify all distances are 1-3
+  3. Test rise mode over 10 rounds
+  4. Verify distances increase by 1 each round
+EXPECTED:
+  - Shuffle: Random values between 1-3
+  - Rise: Sequential increase (2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+RESULT: Both modes worked perfectly
+SHUFFLE OUTPUT:
+  Round 1: move distance = 3
+  Round 2: move distance = 3
+  Round 3: move distance = 1
+  Round 4: move distance = 3
+  Round 5: move distance = 1
+  Round 6: move distance = 3
+  Round 7: move distance = 3
+  Round 8: move distance = 3
+  Round 9: move distance = 1
+  Round 10: move distance = 2
+RISE OUTPUT:
+  Round 1: move distance = 2
+  Round 2: move distance = 3
+  Round 3: move distance = 4
+  Round 4: move distance = 5
+  Round 5: move distance = 6
+  Round 6: move distance = 7
+  Round 7: move distance = 8
+  Round 8: move distance = 9
+  Round 9: move distance = 10
+  Round 10: move distance = 11
+
+Test 22: First Player Selection Full Test
+STATUS: ✓ PASSED (Automated)
+DESCRIPTION: Complete test of all first player options
+FILE: src/firstPlayerTest.ts
+PROCEDURE:
+  1. Test player1 default
+  2. Test player2 explicit selection
+  3. Test random selection (10 trials)
+  4. Test with single player mode (AI starts)
+EXPECTED:
+  - Player1: Index 0
+  - Player2: Index 1
+  - Random: Both 0 and 1 should occur
+  - AI start: Index 1
+RESULT: All options worked correctly
+RANDOM TRIALS OUTPUT:
+  Player1 started: 3 times
+  Player2 started: 7 times
+  Total: 10 (expected: 10)
+
+-------------------------------------------------------------------
+TEST SUITE 5: Interactive Game Tests (renamed to Suite 6)
+-------------------------------------------------------------------
+
+Test 18: Settings Menu Navigation
+STATUS: ✓ PASSED (Manual)
+DESCRIPTION: Test interactive settings menu in interactiveGame.ts
+PROCEDURE:
+  1. Run interactiveGame.ts
+  2. Choose to configure settings
+  3. Navigate through all options
+  4. Start game
+EXPECTED: All menu options work and settings apply correctly
+RESULT: Menu works correctly, settings applied
+
+Test 19: Default Skip Settings
+STATUS: ✓ PASSED (Manual)
+DESCRIPTION: Test skipping settings configuration
+PROCEDURE:
+  1. Run interactiveGame.ts
+  2. Choose not to configure settings (press 'n')
+  3. Start game
+EXPECTED: Default settings applied
+RESULT: Default settings correctly applied when skipped
+
 -------------------------------------------------------------------
 COMPILATION AND BUILD TESTS
 -------------------------------------------------------------------
@@ -203,8 +305,8 @@ OUTPUT: "=== All Settings Tests Passed! ==="
 SUMMARY
 -------------------------------------------------------------------
 
-Total Tests: 21
-Passed: 21
+Total Tests: 22
+Passed: 22
 Failed: 0
 Success Rate: 100%
 
@@ -217,6 +319,13 @@ All settings features implemented and tested:
 ✓ Settings menu interface
 ✓ Settings persistence
 ✓ Integration with existing game mechanics
+
+Additional test files created:
+- src/settingsTest.ts: Core settings configuration tests
+- src/timerForceDrawTest.ts: Timer functionality test
+- src/moveDistanceTest.ts: Move distance modes test
+- src/firstPlayerTest.ts: First player selection test
+- src/interactiveGame.ts: Interactive game with settings menu
 
 The settings implementation is complete and fully functional.
 
