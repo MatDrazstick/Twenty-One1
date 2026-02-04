@@ -47,6 +47,7 @@ export class Game {
   turnTimer: NodeJS.Timeout | null;
   turnStartTime: number | null;
   turnTimeRemaining: number;
+  forcedActionTaken: boolean;  // Track if timer forced an action
   
   constructor(player1Name: string, player2Name: string, settings?: GameSettings);
   constructor(player1Name: string, mode: GameMode, aiDifficulty?: AIDifficulty, settings?: GameSettings);
@@ -72,6 +73,7 @@ export class Game {
     this.turnTimer = null;
     this.turnStartTime = null;
     this.turnTimeRemaining = 0;
+    this.forcedActionTaken = false;
     
     // Initialize default settings
     this.settings = {
@@ -476,6 +478,12 @@ export class Game {
     // Clear any existing timer
     this.stopTurnTimer();
     
+    // Only reset forced action flag if it wasn't just set
+    // (Don't reset it immediately after a forced action)
+    if (!this.forcedActionTaken) {
+      // This is a normal turn start, not following a forced action
+    }
+    
     // Skip timer for AI players
     if (this.players[this.currentPlayerIndex] instanceof AIPlayer) {
       return;
@@ -512,8 +520,9 @@ export class Game {
           // Just switch turn, don't force draw
           this.switchTurn();
         } else {
-          // Bug 2 Fix: Force the player to draw and let it complete
+          // Bug 2 & Bug 3 Fix: Force the player to draw and set flag
           console.log(`\n⏰ Time's up! Forcing draw...`);
+          this.forcedActionTaken = true;
           this.playerDraws().catch(err => console.error('Error forcing draw:', err));
         }
       }

@@ -173,6 +173,13 @@ async function playGame() {
     // Get player action
     const action = await askQuestion("\nWhat would you like to do? (draw/stay): ");
     
+    // Bug 3 Fix: Check if timer forced an action while we were waiting for input
+    if (game.forcedActionTaken) {
+      console.log("(Timer already forced an action, ignoring input)");
+      game.forcedActionTaken = false;  // Reset the flag
+      continue;  // Skip to next iteration
+    }
+    
     if (action === 'draw' || action === 'd') {
       await game.playerDraws();
     } else if (action === 'stay' || action === 's') {
