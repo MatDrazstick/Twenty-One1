@@ -44,7 +44,7 @@ async function playGame() {
             console.log(`Your visible score: ${currentPlayer.calculateVisibleScore()}`);
             console.log(`Your total score (including hidden card): ${currentPlayer.calculateTotalScore()}`);
             console.log(`Opponent's visible score: ${game.players[1].calculateVisibleScore()}`);
-            console.log(`\nKill Machine - Distance to you: ${game.machineDistanceP1}, Distance to AI: ${game.machineDistanceP2}`);
+            console.log(`\nKill Machine - Position: ${game.machinePosition} (Distance to you: ${game.machinePosition}, Distance to AI: ${12 - game.machinePosition})`);
             // Check if player has busted and already stayed
             if (currentPlayer.isBusted && game.player1Stayed) {
                 console.log("You have busted! Waiting for opponent's turn...");

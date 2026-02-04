@@ -116,6 +116,23 @@ async function playGame() {
     while (!game.gameOver) {
         // Check whose turn it is
         const currentPlayer = game.players[game.currentPlayerIndex];
+        // Check if current player has already acted (stayed or busted)
+        const p1Done = game.player1Stayed || game.players[0].isBusted;
+        const p2Done = game.player2Stayed || game.players[1].isBusted;
+        // If both players are done, the round should have ended
+        // Continue loop to allow endRound() to process
+        if (p1Done && p2Done) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            continue;
+        }
+        // Bug 2 Fix: Check if current player is already done before processing turn
+        const currentPlayerDone = (game.currentPlayerIndex === 0) ? p1Done : p2Done;
+        if (currentPlayerDone) {
+            // Current player is done, switch to other player
+            console.log(`${currentPlayer.name} has already completed their turn.`);
+            game.currentPlayerIndex = 1 - game.currentPlayerIndex;
+            continue;
+        }
         // If it's the AI's turn, execute AI turn
         if (game.currentPlayerIndex === 1) {
             await game.executeAITurn();
@@ -125,6 +142,10 @@ async function playGame() {
         console.log(`\n--- ${currentPlayer.name}'s Turn ---`);
         console.log(`Your hand: ${currentPlayer.printHand()}`);
         console.log(`Your visible score: ${currentPlayer.calculateVisibleScore()}`);
+        // Bug 1 Fix: Show hidden card to current player only
+        if (currentPlayer.faceDownCard) {
+            console.log(`Your hidden card: [${currentPlayer.faceDownCard.values}]`);
+        }
         // Show time remaining
         const timeRemaining = game.getTurnTimeRemaining();
         if (timeRemaining > 0) {

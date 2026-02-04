@@ -12,7 +12,7 @@ async function testShuffleMode() {
   
   console.log(`Game created with ${game.settings.moveDistanceMode} mode`);
   console.log(`Initial move distance: ${game.moveDistance}`);
-  console.log(`Initial machine distances: P1=${game.machineDistanceP1}, P2=${game.machineDistanceP2}`);
+  console.log(`Initial machine position: ${game.machinePosition} (Distance to P1: ${game.machinePosition}, Distance to P2: ${12 - game.machinePosition})`);
   
   // Simulate round endings to test shuffle
   console.log("\nSimulating 10 rounds to test shuffle behavior:");

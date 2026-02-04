@@ -90,6 +90,6 @@ console.log(`\nFinal State:`);
 console.log(`Player 1: ${player1.printHand()} (Score: ${player1.calculateTotalScore()})`);
 console.log(`AI: ${ai.printHand()} (Score: ${ai.calculateTotalScore()})`);
 console.log(`Target: ${fullGame.targetNumber}, Bet Modifier: ${fullGame.betModifier}`);
-console.log(`Machine Distance - P1: ${fullGame.machineDistanceP1}, P2: ${fullGame.machineDistanceP2}`);
+console.log(`Machine Position: ${fullGame.machinePosition} (Distance to P1: ${fullGame.machinePosition}, Distance to P2: ${12 - fullGame.machinePosition})`);
 
 console.log("\n✓ Demonstration Complete!");

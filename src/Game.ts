@@ -28,9 +28,9 @@ export class Game {
   mode: GameMode;
   aiDifficulty?: AIDifficulty;
   
-  // Kill machine mechanic
-  machineDistanceP1: number;
-  machineDistanceP2: number;
+  // Kill machine mechanic (Bug 4 Fix: Array-based number line)
+  // Machine position on number line: 0 = P1, 6 = Machine start, 12 = P2
+  machinePosition: number;
   moveDistance: number;
   
   // Game state
@@ -54,8 +54,9 @@ export class Game {
     // Initialize basic properties
     this.deck = new Deck();
     this.abilityDeck = new AbilityDeck();
-    this.machineDistanceP1 = 7;
-    this.machineDistanceP2 = 7;
+    // Bug 4 Fix: Machine starts at position 6 (center of 0-12 number line)
+    // Position 0 = Player 1, Position 6 = Machine, Position 12 = Player 2
+    this.machinePosition = 6;
     this.moveDistance = 1;
     this.currentPlayerIndex = 0;
     this.gameOver = false;
@@ -128,7 +129,7 @@ export class Game {
   }
   
   // Initial deal for a round
-  private setupNewRound(): void {
+  setupNewRound(): void {
     console.log(`\n=== Round ${this.roundNumber} ===`);
     
     // Reset and shuffle deck for each new round
@@ -227,7 +228,7 @@ export class Game {
         console.log(`You busted with a total of ${currentPlayer.calculateTotalScore()} (target: ${this.targetNumber})!`);
       }
       
-      // Check if other player has also busted or stayed
+      // Bug 5 Fix: Check if other player has also busted or stayed
       const otherPlayerIndex = 1 - this.currentPlayerIndex;
       const otherPlayer = this.players[otherPlayerIndex];
       const otherPlayerStayed = (otherPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
@@ -238,12 +239,14 @@ export class Game {
         await this.endRound();
       } else {
         // Switch to other player - they still need their turn
+        // Don't mark current player as stayed, they busted
+        console.log(`${currentPlayer.name} is out. ${this.players[otherPlayerIndex].name}'s turn.`);
         this.switchTurn();
       }
       return;
     }
     
-    // Switch to next player
+    // Player didn't bust, switch to next player
     this.switchTurn();
   }
   
@@ -288,6 +291,12 @@ export class Game {
   // Execute AI player's turn
   async executeAITurn(): Promise<void> {
     const aiPlayer = this.players[1];
+    
+    // Bug 2 Fix: Check if AI has already stayed or busted before acting
+    if (aiPlayer.isBusted || this.player2Stayed) {
+      // Don't log here, let the game loop handle it
+      return;
+    }
     
     // Add delay before AI makes decision, longer for higher difficulties
     // Level 1: 3s, Level 2: 3.5s, Level 3: 4s, Level 4: 4.5s, Level 5: 5s
@@ -408,49 +417,57 @@ export class Game {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
   
-  // Move the kill machine
+  // Move the kill machine (Bug 4 Fix: Number line approach)
   private updateKillMachine(roundWinner: Player): void {
     const actualMoveDistance = this.moveDistance + this.betModifier;
     
+    // Number line: 0 = P1, 6 = center, 12 = P2
     if (roundWinner === this.players[0]) {
-      // Check if player 1 has Bless and would die
-      if (this.players[1].hasBless && this.machineDistanceP2 - actualMoveDistance <= 0) {
+      // Player 1 wins, machine moves toward Player 2 (right on number line)
+      const newPosition = this.machinePosition + actualMoveDistance;
+      
+      // Check if player 2 has Bless and would die
+      if (this.players[1].hasBless && newPosition >= 12) {
         console.log(`${this.players[1].name} uses Bless to avoid death!`);
         this.players[1].hasBless = false;
         return;
       }
       
-      // Machine moves toward player 2 (loser) and away from player 1 (winner)
-      this.machineDistanceP2 -= actualMoveDistance;
-      this.machineDistanceP1 += actualMoveDistance;
+      this.machinePosition = newPosition;
       console.log(`Machine moves ${actualMoveDistance} toward ${this.players[1].name} (base: ${this.moveDistance}, modifier: ${this.betModifier})`);
     } else {
-      // Check if player 2 has Bless and would die
-      if (this.players[0].hasBless && this.machineDistanceP1 - actualMoveDistance <= 0) {
+      // Player 2 wins, machine moves toward Player 1 (left on number line)
+      const newPosition = this.machinePosition - actualMoveDistance;
+      
+      // Check if player 1 has Bless and would die
+      if (this.players[0].hasBless && newPosition <= 0) {
         console.log(`${this.players[0].name} uses Bless to avoid death!`);
         this.players[0].hasBless = false;
         return;
       }
       
-      // Machine moves toward player 1 (loser) and away from player 2 (winner)
-      this.machineDistanceP1 -= actualMoveDistance;
-      this.machineDistanceP2 += actualMoveDistance;
+      this.machinePosition = newPosition;
       console.log(`Machine moves ${actualMoveDistance} toward ${this.players[0].name} (base: ${this.moveDistance}, modifier: ${this.betModifier})`);
     }
     
-    console.log(`Machine distances: P1=${this.machineDistanceP1}, P2=${this.machineDistanceP2}`);
+    // Calculate distances from machine to each player
+    const distanceToP1 = this.machinePosition - 0;
+    const distanceToP2 = 12 - this.machinePosition;
+    console.log(`Machine position: ${this.machinePosition} (Distance to P1: ${distanceToP1}, Distance to P2: ${distanceToP2})`);
   }
   
-  // Check if machine reached a player
+  // Check if machine reached a player (Bug 4 Fix: Use number line positions)
   private checkGameOver(): void {
-    if (this.machineDistanceP1 <= 0) {
+    if (this.machinePosition <= 0) {
       this.gameOver = true;
       this.winner = this.players[1];  // Player 2 wins
-      console.log(`\nGAME OVER! ${this.players[1].name} wins!`);
-    } else if (this.machineDistanceP2 <= 0) {
+      console.log(`\nGAME OVER! The machine reached ${this.players[0].name}!`);
+      console.log(`${this.players[1].name} wins!`);
+    } else if (this.machinePosition >= 12) {
       this.gameOver = true;
       this.winner = this.players[0];  // Player 1 wins
-      console.log(`\nGAME OVER! ${this.players[0].name} wins!`);
+      console.log(`\nGAME OVER! The machine reached ${this.players[1].name}!`);
+      console.log(`${this.players[0].name} wins!`);
     }
   }
   
@@ -482,12 +499,23 @@ export class Game {
         console.log(`\n⚠️  WARNING: 10 seconds remaining!`);
       }
       
-      // Time's up - force draw
+      // Time's up - force action
       if (this.turnTimeRemaining <= 0) {
-        console.log(`\n⏰ Time's up! Forcing draw...`);
         this.stopTurnTimer();
-        // Force the player to draw
-        this.playerDraws().catch(err => console.error('Error forcing draw:', err));
+        
+        const currentPlayer = this.players[this.currentPlayerIndex];
+        const currentPlayerStayed = (this.currentPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
+        
+        // Bug 3 Fix: Check if player has already busted or stayed
+        if (currentPlayer.isBusted || currentPlayerStayed) {
+          console.log(`\n⏰ Time's up! Player has already ${currentPlayer.isBusted ? 'busted' : 'stayed'}.`);
+          // Just switch turn, don't force draw
+          this.switchTurn();
+        } else {
+          // Bug 2 Fix: Force the player to draw and let it complete
+          console.log(`\n⏰ Time's up! Forcing draw...`);
+          this.playerDraws().catch(err => console.error('Error forcing draw:', err));
+        }
       }
     }, 1000);
   }
