@@ -117,7 +117,8 @@ async function playGame() {
         // Check whose turn it is
         const currentPlayer = game.players[game.currentPlayerIndex];
         // Check if current player has already acted (stayed or busted)
-        const p1Done = game.player1Stayed || game.players[0].isBusted;
+        // Bug 6 Fix: A player who busted but hasn't acknowledged with 'stay' is NOT done yet
+        const p1Done = game.player1Stayed || (game.players[0].isBusted && !game.mustStay);
         const p2Done = game.player2Stayed || game.players[1].isBusted;
         // If both players are done, the round should have ended
         // Continue loop to allow endRound() to process
@@ -128,9 +129,17 @@ async function playGame() {
         // Bug 2 Fix: Check if current player is already done before processing turn
         const currentPlayerDone = (game.currentPlayerIndex === 0) ? p1Done : p2Done;
         if (currentPlayerDone) {
-            // Current player is done, switch to other player
+            // Current player is done, check if other player is also done
+            const otherPlayerIndex = 1 - game.currentPlayerIndex;
+            const otherPlayerDone = (otherPlayerIndex === 0) ? p1Done : p2Done;
+            if (otherPlayerDone) {
+                // Both players are done but round hasn't ended yet
+                await new Promise(resolve => setTimeout(resolve, 100));
+                continue;
+            }
+            // Switch to other player
             console.log(`${currentPlayer.name} has already completed their turn.`);
-            game.currentPlayerIndex = 1 - game.currentPlayerIndex;
+            game.currentPlayerIndex = otherPlayerIndex;
             continue;
         }
         // If it's the AI's turn, execute AI turn
@@ -155,8 +164,18 @@ async function playGame() {
         if (currentPlayer.abilityHand.length > 0) {
             console.log(`\nYour abilities: ${currentPlayer.printAbilityHand()}`);
         }
+        // Bug 1 Fix: Show when player must draw (after timer forced action)
+        let promptMessage = "\nWhat would you like to do? (draw/stay/ability [1-n]): ";
+        if (game.mustDraw) {
+            console.log("\n⚠️  WARNING: You MUST draw a card (cannot stay) due to timeout!");
+            promptMessage = "\nYou must draw - type 'draw': ";
+        }
+        else if (game.mustStay) {
+            console.log("\n⚠️  WARNING: You have BUSTED and MUST choose 'stay' to proceed!");
+            promptMessage = "\nYou must stay - type 'stay': ";
+        }
         // Get player action
-        const action = await askQuestion("\nWhat would you like to do? (draw/stay): ");
+        const action = await askQuestion(promptMessage);
         // Bug 3 Fix: Check if timer forced an action while we were waiting for input
         if (game.forcedActionTaken) {
             console.log("(Timer already forced an action, ignoring input)");
@@ -169,8 +188,22 @@ async function playGame() {
         else if (action === 'stay' || action === 's') {
             await game.playerStays();
         }
+        else if (action.startsWith('ability') || action.startsWith('a')) {
+            // Parse ability index (e.g., "ability 1", "a 2", "ability1", "a2")
+            const parts = action.match(/[a]/i)?.[0] ? action.substring(1).trim() : action.substring('ability'.length).trim();
+            const abilityIndex = parseInt(parts) - 1; // Convert to 0-based index
+            if (isNaN(abilityIndex)) {
+                console.log("Invalid ability command. Use 'ability 1', 'ability 2', etc.");
+            }
+            else {
+                const success = await game.useAbility(abilityIndex);
+                if (success) {
+                    console.log("Ability used! You can now draw or stay.");
+                }
+            }
+        }
         else {
-            console.log("Invalid action. Please type 'draw' or 'stay'.");
+            console.log("Invalid action. Please type 'draw', 'stay', or 'ability [number]'.");
         }
     }
     // Game over

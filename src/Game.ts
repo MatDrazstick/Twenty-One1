@@ -48,6 +48,10 @@ export class Game {
   turnStartTime: number | null;
   turnTimeRemaining: number;
   forcedActionTaken: boolean;  // Track if timer forced an action
+  forcedDrawCount: number;  // Track how many times we've forced a draw in current turn
+  mustDraw: boolean;  // Indicates player must draw (cannot stay) after timer forced action
+  mustStay: boolean;  // Indicates busted player must stay before AI turn
+  timePenaltyApplied: boolean;  // Track if penalty was applied for not staying after bust
   
   constructor(player1Name: string, player2Name: string, settings?: GameSettings);
   constructor(player1Name: string, mode: GameMode, aiDifficulty?: AIDifficulty, settings?: GameSettings);
@@ -74,6 +78,10 @@ export class Game {
     this.turnStartTime = null;
     this.turnTimeRemaining = 0;
     this.forcedActionTaken = false;
+    this.forcedDrawCount = 0;
+    this.mustDraw = false;
+    this.mustStay = false;
+    this.timePenaltyApplied = false;
     
     // Initialize default settings
     this.settings = {
@@ -197,8 +205,14 @@ export class Game {
   }
   
   // Current player draws a card
-  async playerDraws(): Promise<void> {
+  async playerDraws(skipTurnSwitch: boolean = false): Promise<void> {
     if (this.gameOver) return;
+    
+    // Clear mustDraw flag when player voluntarily draws
+    if (this.mustDraw && !skipTurnSwitch) {
+      this.mustDraw = false;
+      console.log("✓ Player drew a card.");
+    }
     
     const currentPlayer = this.players[this.currentPlayerIndex];
     
@@ -235,28 +249,63 @@ export class Game {
       const otherPlayer = this.players[otherPlayerIndex];
       const otherPlayerStayed = (otherPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
       
+      // Bug 6 Fix: Clear mustDraw flag whenever player busts, regardless of other player's state
+      this.mustDraw = false;
+      
       // End round if both players are done (busted or stayed)
       if (otherPlayer.isBusted || otherPlayerStayed) {
         console.log("Both players are done! Outputting scores");
         await this.endRound();
       } else {
-        // Switch to other player - they still need their turn
-        // Don't mark current player as stayed, they busted
-        console.log(`${currentPlayer.name} is out. ${this.players[otherPlayerIndex].name}'s turn.`);
-        this.switchTurn();
+        // New behavior: Require player to choose 'stay' before AI turn
+        console.log(`${currentPlayer.name} is out. You must choose 'stay' to proceed to ${this.players[otherPlayerIndex].name}'s turn.`);
+        this.mustStay = true;
+        // Bug 6 Fix Part C: Clear forcedActionTaken so player's 'stay' input won't be ignored
+        this.forcedActionTaken = false;
+        // Don't switch turn - wait for player to stay
+        // Restart timer to give them time to stay
+        if (!skipTurnSwitch) {
+          this.startTurnTimer();
+        }
       }
       return;
     }
     
-    // Player didn't bust, switch to next player
-    this.switchTurn();
+    // Player didn't bust, switch to next player (unless this is a forced draw)
+    if (!skipTurnSwitch) {
+      this.switchTurn();
+    }
   }
   
   // Current player stays
   async playerStays(): Promise<void> {
     if (this.gameOver) return;
     
+    // Bug 1 Fix: Prevent staying when player must draw (after forced timeout)
+    if (this.mustDraw) {
+      console.log(`❌ You cannot stay right now. You must draw a card first.`);
+      return;
+    }
+    
     const currentPlayer = this.players[this.currentPlayerIndex];
+    
+    // If player has busted and must stay, clear the flag and switch turn
+    if (this.mustStay && currentPlayer.isBusted) {
+      console.log(`${currentPlayer.name} acknowledges bust and stays.`);
+      this.mustStay = false;
+      
+      // Mark player as stayed
+      if (this.currentPlayerIndex === 0) {
+        this.player1Stayed = true;
+      } else {
+        this.player2Stayed = true;
+      }
+      
+      // Switch to AI turn
+      this.switchTurn();
+      return;
+    }
+    
     console.log(`${currentPlayer.name} stays.`);
     
     // Mark current player as stayed
@@ -275,10 +324,47 @@ export class Game {
     }
   }
   
+  // Use an ability card
+  async useAbility(abilityIndex: number): Promise<boolean> {
+    if (this.gameOver) return false;
+    
+    const currentPlayer = this.players[this.currentPlayerIndex];
+    const opponent = this.players[1 - this.currentPlayerIndex];
+    
+    // Check if player has any abilities
+    if (currentPlayer.abilityHand.length === 0) {
+      console.log(`You have no ability cards to use.`);
+      return false;
+    }
+    
+    // Check valid index
+    if (abilityIndex < 0 || abilityIndex >= currentPlayer.abilityHand.length) {
+      console.log(`Invalid ability index. Choose 1-${currentPlayer.abilityHand.length}.`);
+      return false;
+    }
+    
+    // Use the ability
+    const success = currentPlayer.useAbility(abilityIndex, this, opponent);
+    
+    if (success) {
+      // Ability was used successfully
+      // Note: abilities don't end your turn, you can still draw or stay
+      return true;
+    }
+    
+    return false;
+  }
+  
   // Switch to next player
   private switchTurn(): void {
     // Stop the current player's timer
     this.stopTurnTimer();
+    
+    // Reset forced draw tracking and flags for new turn
+    this.forcedDrawCount = 0;
+    this.mustDraw = false;
+    this.mustStay = false;
+    this.timePenaltyApplied = false;
     
     this.currentPlayerIndex = 1 - this.currentPlayerIndex;  // Flips 0↔1
     console.log(`\nNow it's ${this.players[this.currentPlayerIndex].name}'s turn.`);
@@ -358,8 +444,8 @@ export class Game {
     let roundLoser: Player | null = null;
     
     if (score1 > this.targetNumber && score2 > this.targetNumber) {
-      // Both bust - closer to target wins
-      roundWinner = (this.targetNumber - score1 < this.targetNumber - score2) ? player1 : player2;
+      // Both bust - closer to target wins (Bug 7 Fix: use absolute value)
+      roundWinner = (Math.abs(this.targetNumber - score1) < Math.abs(this.targetNumber - score2)) ? player1 : player2;
     } else if (score1 > this.targetNumber) {
       roundWinner = player2;
       roundLoser = player1;
@@ -514,16 +600,56 @@ export class Game {
         const currentPlayer = this.players[this.currentPlayerIndex];
         const currentPlayerStayed = (this.currentPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
         
+        // Check if player has busted and must stay
+        if (this.mustStay && currentPlayer.isBusted && !this.timePenaltyApplied) {
+          console.log(`\n⏰ Time's up! You did not stay after busting.`);
+          console.log(`⚠️  PENALTY: Machine moves 1 space closer to you!`);
+          
+          // Apply penalty: move machine toward the current player
+          if (this.currentPlayerIndex === 0) {
+            // Player 1 timed out, move machine toward Player 1
+            this.machinePosition--;
+            console.log(`Machine position: ${this.machinePosition}`);
+          } else {
+            // Player 2 timed out, move machine toward Player 2
+            this.machinePosition++;
+            console.log(`Machine position: ${this.machinePosition}`);
+          }
+          
+          this.timePenaltyApplied = true;
+          
+          // Force stay and switch turn
+          console.log(`Forcing stay...`);
+          this.playerStays().catch(err => console.error('Error forcing stay:', err));
+          return;
+        }
+        
         // Bug 3 Fix: Check if player has already busted or stayed
         if (currentPlayer.isBusted || currentPlayerStayed) {
           console.log(`\n⏰ Time's up! Player has already ${currentPlayer.isBusted ? 'busted' : 'stayed'}.`);
           // Just switch turn, don't force draw
           this.switchTurn();
         } else {
-          // Bug 2 & Bug 3 Fix: Force the player to draw and set flag
-          console.log(`\n⏰ Time's up! Forcing draw...`);
+          // Bug 1 Fix: Force draw and restart timer (don't switch turns)
+          this.forcedDrawCount++;
+          console.log(`\n⏰ Time's up! Forcing draw (${this.forcedDrawCount})...`);
           this.forcedActionTaken = true;
-          this.playerDraws().catch(err => console.error('Error forcing draw:', err));
+          this.mustDraw = true;  // Player must draw next, cannot stay
+          
+          // Force the draw (pass true to skip turn switch)
+          this.playerDraws(true).then(() => {
+            // After forced draw, check if player busted or if round ended
+            if (!this.gameOver && !currentPlayer.isBusted) {
+              // Player didn't bust, restart timer and require another draw
+              console.log(`\n⚠️  You must draw a card (cannot stay). Timer restarting...`);
+              // Don't call switchTurn - keep it as same player's turn
+              // Manually restart timer for the same player
+              this.startTurnTimer();
+            } else {
+              // Player busted or game ended, clear the mustDraw flag
+              this.mustDraw = false;
+            }
+          }).catch(err => console.error('Error forcing draw:', err));
         }
       }
     }, 1000);
