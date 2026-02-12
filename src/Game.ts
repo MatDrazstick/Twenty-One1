@@ -37,8 +37,9 @@ export class Game {
   gameOver: boolean;
   winner: Player | null;
   roundNumber: number;
-  player1Stayed: boolean;
-  player2Stayed: boolean;
+  player1Stayed: boolean;  // Track if player 1 stayed on their most recent action (for display)
+  player2Stayed: boolean;  // Track if player 2 stayed on their most recent action (for display)
+  lastPlayerIndexWhoStayed: number | null;  // Track which player stayed last (-1 = none, 0 = P1, 1 = P2)
   
   // Settings
   settings: GameSettings;
@@ -69,6 +70,7 @@ export class Game {
     this.roundNumber = 1;
     this.player1Stayed = false;
     this.player2Stayed = false;
+    this.lastPlayerIndexWhoStayed = null;
     this.targetNumber = 21;
     this.betModifier = 0;
     this.lastAbilityPlayed = null;
@@ -170,8 +172,7 @@ export class Game {
     
     this.player1Stayed = false;
     this.player2Stayed = false;
-    
-    // Deal: face-down then face-up for each player
+    this.lastPlayerIndexWhoStayed = null;
     this.players[0].setFaceDownCard(this.deck.dealCard(false));
     this.players[1].setFaceDownCard(this.deck.dealCard(false));
     
@@ -216,13 +217,6 @@ export class Game {
     
     const currentPlayer = this.players[this.currentPlayerIndex];
     
-    // Check if player has already stayed
-    const currentPlayerStayed = (this.currentPlayerIndex === 0) ? this.player1Stayed : this.player2Stayed;
-    if (currentPlayerStayed) {
-      console.log(`You have already stayed and cannot draw more cards.`);
-      return;
-    }
-    
     // If player has already busted, they can't draw anymore
     if (currentPlayer.isBusted) {
       console.log(`You have busted and cannot draw more cards.`);
@@ -231,6 +225,16 @@ export class Game {
     
     const newCard = this.deck.dealCard(true);
     currentPlayer.addCard(newCard);
+    
+    // Clear the stayed flag for this player since they drew
+    if (this.currentPlayerIndex === 0) {
+      this.player1Stayed = false;
+    } else {
+      this.player2Stayed = false;
+    }
+    
+    // Reset the last stayed tracker since someone drew
+    this.lastPlayerIndexWhoStayed = null;
     
     console.log(`${currentPlayer.name} draws: ${newCard.toString()}`);
     console.log(`New total: ${currentPlayer.calculateVisibleScore()}`);
@@ -294,14 +298,13 @@ export class Game {
       console.log(`${currentPlayer.name} acknowledges bust and stays.`);
       this.mustStay = false;
       
-      // Mark player as stayed
+      // Mark player as stayed (for display/logic purposes)
       if (this.currentPlayerIndex === 0) {
         this.player1Stayed = true;
       } else {
         this.player2Stayed = true;
       }
       
-      // Switch to AI turn
       this.switchTurn();
       return;
     }
@@ -315,11 +318,14 @@ export class Game {
       this.player2Stayed = true;
     }
     
-    // If both players have stayed, end the round
-    if (this.player1Stayed && this.player2Stayed) {
-      console.log("Both have stayed! Outputting scores");
+    // Check if the OTHER player stayed last
+    // If so, both players have now stayed consecutively, end the round
+    if (this.lastPlayerIndexWhoStayed !== null && this.lastPlayerIndexWhoStayed !== this.currentPlayerIndex) {
+      console.log("Both players have stayed consecutively! Outputting scores");
       await this.endRound();
     } else {
+      // Track that this player stayed
+      this.lastPlayerIndexWhoStayed = this.currentPlayerIndex;
       this.switchTurn();
     }
   }
