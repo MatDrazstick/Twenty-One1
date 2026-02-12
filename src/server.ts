@@ -9,6 +9,8 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
+    // NOTE: In production, replace "*" with specific allowed origins
+    // Example: origin: "https://yourdomain.com"
     origin: "*",
     methods: ["GET", "POST"]
   }
@@ -26,6 +28,7 @@ interface RoomData {
   hostName: string;
   guestName: string | null;
   settings: GameSettings;
+  disconnectTimeout: NodeJS.Timeout | null;
 }
 
 // Store active rooms
@@ -33,7 +36,9 @@ const rooms = new Map<string, RoomData>();
 
 // Generate cryptographically secure room code (6-8 characters)
 function generateRoomCode(): string {
-  const length = Math.floor(Math.random() * 3) + 6; // 6-8 characters
+  // Use cryptographically secure random for length as well
+  const lengthBytes = randomBytes(1);
+  const length = 6 + (lengthBytes[0] % 3); // 6-8 characters
   const bytes = randomBytes(Math.ceil(length / 2));
   return bytes.toString('hex').substring(0, length).toUpperCase();
 }
@@ -46,11 +51,6 @@ function findRoomBySocket(socketId: string): RoomData | null {
     }
   }
   return null;
-}
-
-// Check if socket is host
-function isHost(room: RoomData, socketId: string): boolean {
-  return room.hostSocketId === socketId;
 }
 
 // Get player index in game
@@ -72,7 +72,8 @@ io.on('connection', (socket: Socket) => {
       game: null,
       hostName: data.playerName || 'Player 1',
       guestName: null,
-      settings: data.settings || {}
+      settings: data.settings || {},
+      disconnectTimeout: null
     };
 
     rooms.set(roomCode, room);
@@ -203,7 +204,7 @@ io.on('connection', (socket: Socket) => {
       }
       
       // Clean up room after a delay to allow reconnection
-      setTimeout(() => {
+      room.disconnectTimeout = setTimeout(() => {
         if (rooms.has(room.code)) {
           rooms.delete(room.code);
           console.log(`Room ${room.code} deleted`);
@@ -220,6 +221,12 @@ io.on('connection', (socket: Socket) => {
     if (!room) {
       socket.emit('error', { message: 'Room no longer exists' });
       return;
+    }
+
+    // Cancel the disconnect timeout if it exists
+    if (room.disconnectTimeout) {
+      clearTimeout(room.disconnectTimeout);
+      room.disconnectTimeout = null;
     }
 
     if (data.wasHost) {

@@ -465,6 +465,10 @@
                 turnStatus.className = 'status-message success';
                 drawBtn.disabled = true;
                 stayBtn.disabled = true;
+                
+                // Clear localStorage when game ends
+                localStorage.removeItem('twentyone-room');
+                localStorage.removeItem('twentyone-host');
             } else if (state.isYourTurn) {
                 if (state.yourBusted) {
                     turnStatus.textContent = 'You busted! Click Stay to continue.';
@@ -505,7 +509,7 @@
                 cardEl.textContent = '🂠';
             } else {
                 const valueEl = document.createElement('div');
-                valueEl.textContent = card.values;
+                valueEl.textContent = card.values; // The card value (1-11)
                 valueEl.style.fontSize = '2em';
                 cardEl.appendChild(valueEl);
             }
