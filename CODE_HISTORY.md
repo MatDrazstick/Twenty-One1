@@ -1052,7 +1052,7 @@ this.startTurnTimer();  // Warns at 10s, forces draw at 0s
 
 // Move distance: Rise or Shuffle mode
 if (this.moveDistanceMode === 'shuffle') {
-  this.moveDistance = Math.random(1, 3);  // Random
+  this.moveDistance = Math.floor(Math.random() * 3) + 1;  // Random 1-3
 }
 
 // Starting player: Player1, Player2, or Random
