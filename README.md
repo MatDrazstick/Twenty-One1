@@ -37,6 +37,11 @@ Each round, players receive 2 random ability cards that can be used strategicall
 
 ## Game Modes
 
+### Online Multiplayer Mode (NEW!)
+Play against another human player online using Socket.io! Players can create or join rooms using unique room codes and play in real-time.
+
+See [SERVER_README.md](SERVER_README.md) for server setup and usage instructions.
+
 ### Single Player Mode
 Play against an AI opponent with 5 difficulty levels:
 

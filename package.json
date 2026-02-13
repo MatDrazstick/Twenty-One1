@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
+    "@types/express": "^5.0.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/node": "^25.0.9"
+    "@types/node": "^25.0.9",
+    "socket.io-client": "^4.8.3"
   }
 }
