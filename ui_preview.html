@@ -1,73 +1,332 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Resident Evil 7 Style UI</title>
+    <meta charset="UTF-8">
+    <title>Twenty-One Game UI Preview</title>
     <style>
         body {
-            background-color: #1c1c1c;
-            color: #ffffff;
-            font-family: 'Arial', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f1110; /* Very dark background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Courier New', Courier, monospace;
         }
-        .side-menu {
-            width: 250px;
-            height: 100%;
-            background-color: #2c2c2c;
-            position: fixed;
-            left: 0;
-            top: 0;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.5);
-        }
-        .side-menu h2 {
-            font-size: 24px;
-            margin-bottom: 20px;
-        }
-        .hidden-card {
-            display: none;
-            background-color: #444;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-        .machine-track {
-            background-color: #333;
-            padding: 10px;
-            border-radius: 5px;
-            width: 100%;
-            height: 100px;
-            margin: 20px 0;
+        canvas {
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+            cursor: crosshair;
         }
     </style>
 </head>
 <body>
-    <div class="side-menu">
-        <h2>Menu</h2>
-        <ul>
-            <li>Home</li>
-            <li>Play</li>
-            <li>Settings</li>
-            <li>Exit</li>
-        </ul>
-    </div>
-    <div style="margin-left: 260px; padding: 20px;">
-        <h1>Resident Evil 7 Style UI</h1>
-        <div class="hidden-card" id="card">
-            <p>This is a hidden card. It can be revealed based on game logic.</p>
-        </div>
-        <div class="machine-track">
-            <p>Machine track UI here.</p>
-        </div>
-    </div>
-    <script>
-        // JavaScript logic for showing and hiding the hidden card
-        function toggleCard() {
-            var card = document.getElementById('card');
-            if (card.style.display === 'none' || card.style.display === '') {
-                card.style.display = 'block';
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- MOCK DATA ---
+    const player1 = {
+        name: "You",
+        cards: [
+            { value: 11, faceUp: false }, // Hidden card (Trump card)
+            { value: 5, faceUp: true }
+        ],
+        score: 16
+    };
+
+    const player2 = {
+        name: "Opponent",
+        cards: [
+            { value: 4, faceUp: false }, // Hidden
+            { value: 2, faceUp: true },
+            { value: 4, faceUp: true }
+        ],
+        visibleScore: 6, // 2 + 4
+        totalScore: 10
+    };
+
+    // Game State
+    let showAbilityMenu = false;
+    let machinePosition = 0; // 0 = Center, -ve = P1 losing, +ve = P2 losing
+
+    // Resize canvas
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        draw();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Input Handling
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            showAbilityMenu = !showAbilityMenu;
+            draw();
+        }
+    });
+    
+    // Mouse Mock interactions
+    window.addEventListener('mousedown', (e) => {
+        if (e.button === 0) { // Left click
+            console.log("Action: Draw");
+            // Visual feedback could be added here
+        } else if (e.button === 2) { // Right click
+            console.log("Action: Stay");
+            // Visual feedback
+        }
+    });
+
+    // Prevent context menu on right click
+    window.addEventListener('contextmenu', event => event.preventDefault());
+
+    // --- DRAWING FUNCTIONS ---
+
+    function drawCard(x, y, value, isFaceUp, isOwner) {
+        const w = 80;
+        const h = 110;
+        
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        
+        // Card Body
+        if (isFaceUp) {
+            ctx.fillStyle = '#e3e3e3'; // Off-white
+        } else {
+            // Face down
+            if (isOwner) {
+                ctx.fillStyle = '#d4d4d4'; // Slightly darker for own hidden
             } else {
-                card.style.display = 'none';
+                ctx.fillStyle = '#1a1a1a'; // Dark back for opponent
             }
         }
-        // Call toggleCard in response to a game event or action
-    </script>
+        
+        ctx.fillRect(x, y, w, h);
+        ctx.shadowBlur = 0;
+
+        // Border
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        // Content
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 40px "Times New Roman"';
+
+        if (isFaceUp) {
+            ctx.fillStyle = '#000';
+            ctx.fillText(value.toString(), x + w/2, y + h/2);
+            // Scuff marks effect
+            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y + 10);
+            ctx.lineTo(x + 20, y + 30);
+            ctx.stroke();
+        } else {
+            if (isOwner) {
+                // Owner sees their hidden card (ghosted)
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillText(value.toString(), x + w/2, y + h/2);
+                
+                // Eye icon to indicate it's hidden from others
+                ctx.font = '12px Courier';
+                ctx.fillStyle = '#555';
+                ctx.fillText("(HIDDEN)", x + w/2, y + h - 15);
+            } else {
+                // Opponent's hidden card
+                ctx.fillStyle = '#555';
+                ctx.fillText("?", x + w/2, y + h/2);
+            }
+        }
+    }
+
+    function drawScore(x, y, playerObj, isOwner) {
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        
+        if (isOwner) {
+            // Main Player: "16/21" (Big and bold)
+            ctx.font = 'italic bold 60px "Times New Roman"';
+            ctx.fillText(`${playerObj.score}/21`, x, y);
+        } else {
+            // Opponent: "? + 6"
+            ctx.font = 'italic 40px "Times New Roman"';
+            const hiddenCount = playerObj.cards.filter(c => !c.faceUp).length;
+            
+            // Calculate visible score
+            let visible = 0;
+            playerObj.cards.forEach(c => { if(c.faceUp) visible += c.value; });
+            
+            let text = "";
+            if (hiddenCount > 0) {
+                 text = `? + ${visible}`;
+            } else {
+                 text = `${visible}`;
+            }
+            ctx.fillText(text, x, y);
+            
+            ctx.font = '20px Courier';
+            ctx.fillStyle = '#aaa';
+            ctx.fillText("/ 21", x + ctx.measureText(text).width + 10, y);
+        }
+    }
+
+    function drawMachine(centerY) {
+        // The track
+        const trackWidth = 400;
+        const trackHeight = 10;
+        
+        ctx.fillStyle = '#111';
+        ctx.fillRect(canvas.width/2 - trackWidth/2, centerY - trackHeight/2, trackWidth, trackHeight);
+        
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(canvas.width/2 - trackWidth/2, centerY - trackHeight/2, trackWidth, trackHeight);
+
+        // Notches
+        for(let i = -5; i <= 5; i++) {
+             const x = canvas.width/2 + (i * (trackWidth/10));
+             ctx.beginPath();
+             ctx.moveTo(x, centerY - 10);
+             ctx.lineTo(x, centerY + 10);
+             ctx.stroke();
+        }
+
+        // The Machine Head (Indicator)
+        const indicatorX = canvas.width/2 + (machinePosition * (trackWidth/10));
+        
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00ff00'; // Green ominous glow
+        
+        ctx.fillStyle = '#0f0'; // Bright green light
+        ctx.beginPath();
+        ctx.arc(indicatorX, centerY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.shadowBlur = 0;
+        
+        // Mechanical parts around it
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(indicatorX, centerY - 20); // Hanging from top
+        ctx.lineTo(indicatorX, 0);
+        ctx.stroke();
+        
+        // Label
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.font = '10px Courier';
+        ctx.textAlign = 'center';
+        ctx.fillText("THE MACHINE", canvas.width/2, centerY - 20);
+    }
+
+    function drawControls() {
+        const x = 20;
+        const bottomY = canvas.height - 20;
+        
+        ctx.textAlign = 'left';
+        ctx.font = '16px Courier';
+        
+        // Background for controls
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(x - 10, bottomY - 100, 250, 110);
+        
+        // Left Click
+        ctx.fillStyle = '#fff';
+        ctx.fillText("[L-Click] Draw Card", x, bottomY - 70);
+        
+        // Right Click
+        ctx.fillText("[R-Click] Stay", x, bottomY - 45);
+        
+        // Space
+        ctx.fillText("[Space]   Abilities", x, bottomY - 20);
+    }
+
+    function drawAbilityMenu() {
+        if (!showAbilityMenu) return;
+
+        const w = 300;
+        const x = canvas.width - w;
+        
+        // Sidebar Background
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.95)';
+        ctx.fillRect(x, 0, w, canvas.height);
+        
+        // Border
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+        
+        // Title
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px Courier';
+        ctx.textAlign = 'center';
+        ctx.fillText("TRUMP CARDS", x + w/2, 50);
+        
+        // Card Slots (Mock)
+        const cardH = 60;
+        for(let i=0; i<3; i++) {
+            const y = 100 + (i * 80);
+            
+            ctx.strokeStyle = '#555';
+            ctx.strokeRect(x + 20, y, w - 40, cardH);
+            
+            ctx.fillStyle = '#aaa';
+            ctx.font = '16px Courier';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Ability Slot ${i+1}`, x + 40, y + 35);
+        }
+    }
+
+    function draw() {
+        // 1. Background
+        const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 100, canvas.width/2, canvas.height/2, 800);
+        grad.addColorStop(0, '#2b3a30'); // Center light
+        grad.addColorStop(1, '#0f1110'); // Vignette edges
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const centerX = canvas.width * 0.5;
+        const centerY = canvas.height * 0.5;
+
+        // 2. Machine Track (Middle)
+        drawMachine(centerY);
+
+        // 3. Player 2 (Opponent) Area - Top
+        // Cards
+        let startX = centerX - ((player2.cards.length * 90) / 2);
+        player2.cards.forEach((c, i) => {
+            drawCard(startX + (i * 90), centerY - 250, c.value, c.faceUp, false);
+        });
+        // Score
+        drawScore(startX - 150, centerY - 200, player2, false);
+
+
+        // 4. Player 1 (You) Area - Bottom
+        // Cards
+        startX = centerX - ((player1.cards.length * 90) / 2);
+        player1.cards.forEach((c, i) => {
+            drawCard(startX + (i * 90), centerY + 150, c.value, c.faceUp, true);
+        });
+        // Score
+        drawScore(startX - 200, centerY + 220, player1, true);
+
+
+        // 5. UI Elements
+        drawControls();
+        drawAbilityMenu();
+    }
+
+    // Initialize
+    resizeCanvas();
+</script>
 </body>
 </html>
