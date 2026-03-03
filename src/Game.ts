@@ -305,7 +305,18 @@ export class Game {
         this.player2Stayed = true;
       }
       
-      this.switchTurn();
+      // Bug B Fix: Check whether the other player is already done (stayed or busted).
+      // Previously this always called switchTurn(), causing 1-2 spurious extra turns
+      // before the round ended when the other player had already completed their action.
+      const otherIdx = 1 - this.currentPlayerIndex;
+      const otherPlayerDone = this.players[otherIdx].isBusted
+        || (otherIdx === 0 ? this.player1Stayed : this.player2Stayed);
+      
+      if (otherPlayerDone) {
+        await this.endRound();
+      } else {
+        this.switchTurn();
+      }
       return;
     }
     
@@ -385,6 +396,14 @@ export class Game {
   // Execute AI player's turn
   async executeAITurn(): Promise<void> {
     const aiPlayer = this.players[1];
+    
+    // Bug A Fix: If AI has busted and mustStay is pending, auto-acknowledge the bust.
+    // Without this, the game freezes because executeAITurn returns early (isBusted check
+    // below) while mustStay remains set and the turn never switches back to the human.
+    if (aiPlayer.isBusted && this.mustStay) {
+      await this.playerStays();
+      return;
+    }
     
     // Bug 2 Fix: Check if AI has already stayed or busted before acting
     if (aiPlayer.isBusted || this.player2Stayed) {
