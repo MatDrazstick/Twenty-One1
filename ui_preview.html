@@ -1,12 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UI Preview</title>
+    <title>Resident Evil 7 Style UI</title>
+    <style>
+        body {
+            background-color: #1c1c1c;
+            color: #ffffff;
+            font-family: 'Arial', sans-serif;
+        }
+        .side-menu {
+            width: 250px;
+            height: 100%;
+            background-color: #2c2c2c;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+        }
+        .side-menu h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .hidden-card {
+            display: none;
+            background-color: #444;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .machine-track {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+            height: 100px;
+            margin: 20px 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to the UI Preview!</h1>
-    <p>This is a sample paragraph for the UI preview page.</p>
+    <div class="side-menu">
+        <h2>Menu</h2>
+        <ul>
+            <li>Home</li>
+            <li>Play</li>
+            <li>Settings</li>
+            <li>Exit</li>
+        </ul>
+    </div>
+    <div style="margin-left: 260px; padding: 20px;">
+        <h1>Resident Evil 7 Style UI</h1>
+        <div class="hidden-card" id="card">
+            <p>This is a hidden card. It can be revealed based on game logic.</p>
+        </div>
+        <div class="machine-track">
+            <p>Machine track UI here.</p>
+        </div>
+    </div>
+    <script>
+        // JavaScript logic for showing and hiding the hidden card
+        function toggleCard() {
+            var card = document.getElementById('card');
+            if (card.style.display === 'none' || card.style.display === '') {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        }
+        // Call toggleCard in response to a game event or action
+    </script>
 </body>
 </html>
