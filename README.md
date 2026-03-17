@@ -2,6 +2,14 @@
 
 A card game implementation where two players compete to get as close to 21 as possible without going over, with a unique "kill machine" mechanic that adds strategic pressure to each round, plus an **Ability Card system** that provides strategic advantages.
 
+## 📖 Quick Links
+
+- **[Game Documentation](README.md)** - This file
+- **[Test Results](COMPREHENSIVE_TEST_RESULTS.md)** - Complete test documentation with console I/O ⭐
+- **[Code History](CODE_HISTORY.md)** - Full changelog and feature history
+- **[Documentation Guide](DOCUMENTATION_GUIDE.md)** - Navigate all documentation
+- **[Server Setup](SERVER_README.md)** - Online multiplayer setup
+
 ## Features
 
 ### Ability Card System (NEW!)
@@ -121,6 +129,22 @@ node src/backwardCompatTest.js # Backward compatibility test
 node src/abilityTest.js       # Ability card system tests (27 tests)
 node src/aiAbilityDemo.js     # AI ability usage demonstration
 ```
+
+## 📚 Test Documentation
+
+**Want to see detailed test results with console inputs and outputs?**
+
+See **[COMPREHENSIVE_TEST_RESULTS.md](COMPREHENSIVE_TEST_RESULTS.md)** for:
+- ✅ Complete console commands for all 131+ tests
+- ✅ Actual console inputs and outputs
+- ✅ Test results organized by feature branch
+- ✅ Analysis and explanations for each test
+- ✅ Summary statistics (97.7% pass rate)
+
+**Other test documentation:**
+- [IterativeTests.txt](IterativeTests.txt) - Iterative test logs
+- [PENETRATION_TEST_RESULTS.md](PENETRATION_TEST_RESULTS.md) - Security and edge case testing
+- [BUGFIX.txt](BUGFIX.txt) - Bug fix verification tests
 
 ## AI Strategy Details
 
