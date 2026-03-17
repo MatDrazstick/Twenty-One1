@@ -6,7 +6,8 @@ Welcome to the Twenty-One game documentation! This guide helps you navigate the 
 
 If you want to understand the complete history and evolution of this codebase, start with:
 
-**📚 [CODE_HISTORY.md](./CODE_HISTORY.md)** - The main comprehensive documentation (2,159 lines)
+**📚 [CODE_HISTORY.md](./CODE_HISTORY.md)** - The main comprehensive documentation (2,159 lines)  
+**📊 [COMPREHENSIVE_TEST_RESULTS.md](./COMPREHENSIVE_TEST_RESULTS.md)** - Complete test documentation with console I/O (1,446 lines)
 
 ## What's in CODE_HISTORY.md?
 
@@ -54,6 +55,7 @@ All 7 bugs discovered and fixed, including:
 ### Bug and Test Documentation
 - **BUGFIX.txt** - Detailed bug fix documentation (33 KB)
 - **IterativeTests.txt** - All iterative tests performed (35 KB)
+- **COMPREHENSIVE_TEST_RESULTS.md** - Complete test I/O documentation (34 KB)
 - **PENETRATION_TEST_RESULTS.md** - Security and edge case testing
 
 ### Security Documentation
@@ -82,6 +84,7 @@ All 7 bugs discovered and fixed, including:
 
 ### For Understanding Tests
 - "Testing Summary" section in CODE_HISTORY.md
+- **COMPREHENSIVE_TEST_RESULTS.md** for detailed console I/O
 - IterativeTests.txt for all test execution logs
 - PENETRATION_TEST_RESULTS.md for security testing
 
@@ -128,6 +131,7 @@ When making changes to this codebase:
 
 ---
 
-**Last Updated:** February 13, 2026  
+**Last Updated:** March 17, 2026  
 **Main Documentation:** CODE_HISTORY.md (2,159 lines)  
-**Total Documentation:** ~100 KB across 10+ files
+**Comprehensive Test Results:** COMPREHENSIVE_TEST_RESULTS.md (1,446 lines)  
+**Total Documentation:** ~100 KB across 11+ files
