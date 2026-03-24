@@ -16,8 +16,10 @@ This file contains:
 - ✅ Results organized by feature branch
 - ✅ Analysis and explanations
 - ✅ Summary statistics (97.7% pass rate)
+- ⚠️ **NEW: Failed Tests and Debugging Process** (9 real failures documented!)
 
 **Quick Navigation:**
+- [**Failed Tests & Debugging**](COMPREHENSIVE_TEST_RESULTS.md#failed-tests-and-debugging-process) ⚠️ **NEW!**
 - [Single Player & AI Tests](COMPREHENSIVE_TEST_RESULTS.md#single-player--multiplayer-tests-pr-2)
 - [Ability Card Tests](COMPREHENSIVE_TEST_RESULTS.md#ability-card-system-tests-pr-3)
 - [Game Settings Tests](COMPREHENSIVE_TEST_RESULTS.md#game-settings-tests-pr-5)
