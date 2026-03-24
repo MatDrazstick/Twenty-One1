@@ -16,15 +16,14 @@ This file contains:
 - ✅ Results organized by feature branch
 - ✅ Analysis and explanations
 - ✅ Summary statistics (97.7% pass rate)
-- ⚠️ **NEW: Failed Tests and Debugging Process** (9 real failures documented!)
+- ⚠️ **Failed tests integrated chronologically** - Each PR section shows failures discovered during that phase, then successful tests after fixes
 
 **Quick Navigation:**
-- [**Failed Tests & Debugging**](COMPREHENSIVE_TEST_RESULTS.md#failed-tests-and-debugging-process) ⚠️ **NEW!**
-- [Single Player & AI Tests](COMPREHENSIVE_TEST_RESULTS.md#single-player--multiplayer-tests-pr-2)
-- [Ability Card Tests](COMPREHENSIVE_TEST_RESULTS.md#ability-card-system-tests-pr-3)
-- [Game Settings Tests](COMPREHENSIVE_TEST_RESULTS.md#game-settings-tests-pr-5)
-- [Online Multiplayer Tests](COMPREHENSIVE_TEST_RESULTS.md#online-multiplayer-tests-pr-7)
-- [Bug Fix Tests](COMPREHENSIVE_TEST_RESULTS.md#bug-fix-tests)
+- [Single Player & AI Tests](COMPREHENSIVE_TEST_RESULTS.md#single-player--multiplayer-tests-pr-2) (includes Failures 1-2)
+- [Ability Card Tests](COMPREHENSIVE_TEST_RESULTS.md#ability-card-system-tests-pr-3) (includes Failures 3-4)
+- [Game Settings Tests](COMPREHENSIVE_TEST_RESULTS.md#game-settings-tests-pr-5) (includes Failures 5-6)
+- [Online Multiplayer Tests](COMPREHENSIVE_TEST_RESULTS.md#online-multiplayer-tests-pr-7) (includes Failures 8-9)
+- [Bug Fix Tests](COMPREHENSIVE_TEST_RESULTS.md#bug-fix-tests) (includes critical Failure 7)
 - [Penetration Tests](COMPREHENSIVE_TEST_RESULTS.md#penetration-tests)
 
 ---
