@@ -11,14 +11,13 @@
 
 1. [Overview](#overview)
 2. [Test Environment Setup](#test-environment-setup)
-3. [Failed Tests and Debugging Process](#failed-tests-and-debugging-process) ⚠️ **NEW**
-4. [Single Player & Multiplayer Tests (PR #2)](#single-player--multiplayer-tests-pr-2)
-5. [Ability Card System Tests (PR #3)](#ability-card-system-tests-pr-3)
-6. [Game Settings Tests (PR #5)](#game-settings-tests-pr-5)
-7. [Online Multiplayer Tests (PR #7)](#online-multiplayer-tests-pr-7)
-8. [Bug Fix Tests](#bug-fix-tests)
-9. [Penetration Tests](#penetration-tests)
-10. [Test Summary Statistics](#test-summary-statistics)
+3. [Single Player & Multiplayer Tests (PR #2)](#single-player--multiplayer-tests-pr-2)
+4. [Ability Card System Tests (PR #3)](#ability-card-system-tests-pr-3)
+5. [Game Settings Tests (PR #5)](#game-settings-tests-pr-5)
+6. [Online Multiplayer Tests (PR #7)](#online-multiplayer-tests-pr-7)
+7. [Bug Fix Tests](#bug-fix-tests)
+8. [Penetration Tests](#penetration-tests)
+9. [Test Summary Statistics](#test-summary-statistics)
 
 ---
 
@@ -65,15 +64,13 @@ Main test files compile without errors:
 
 ---
 
-## Failed Tests and Debugging Process
+## Single Player & Multiplayer Tests (PR #2)
 
-⚠️ **This section documents actual test failures, errors, and the iterative debugging process during development.**
+### Early Implementation Failures (January 2026)
 
-Development is rarely linear. This section shows the real failures, error messages, and debugging steps that occurred during the implementation of features. Understanding what went wrong and how it was fixed is crucial to appreciating the robustness of the final implementation.
+During the initial implementation of the single-player and multiplayer modes, several critical bugs were discovered and fixed through iterative testing.
 
 ---
-
-### Early Compilation Failures (January 2026)
 
 #### Failure 1: TypeScript Interface Mismatch
 
@@ -125,8 +122,6 @@ Successfully compiled. No errors.
 ```
 
 ---
-
-### AI Implementation Failures (January 17, 2026)
 
 #### Failure 2: AI Infinite Loop
 
@@ -226,567 +221,7 @@ Now it's Alice's turn.
 
 ---
 
-### Ability Card Failures (January 20-27, 2026)
-
-#### Failure 3: Perfect Draw Returns Wrong Card
-
-**Test**: Ability card "Perfect Draw" test
-
-**Command**:
-```bash
-node src/abilityTest.js
-```
-
-**Error Output**:
-```
-Test 4: Testing Perfect Draw ability...
-
-=== Round 1 ===
-Deck shuffled for new round!
-Cards dealt!
-Test Player: [Hidden], [8]
-Player 2: [Hidden], [7]
-
-Player score before: 17
-Target: 21
-Test Player uses ability: Perfect Draw
-Test Player draws [11] using Perfect Draw
-Ability activation result: true
-Player score after: 28
-
-✗ Test 4 FAILED!
-Expected: Player draws card that brings them to exactly 21 (should be 4)
-Actual: Player drew 11 and busted (score: 28)
-```
-
-**Root Cause**: 
-Perfect Draw was selecting the first card that matched the needed value, but wasn't checking if the deck actually contained that card. It was pulling from an unfiltered deck array.
-
-**Debugging Process**:
-```typescript
-// Added debug logging:
-console.log(`Current score: ${currentScore}`);
-console.log(`Needed to reach target: ${needed}`);
-console.log(`Available cards in deck:`, game.deck.getRemainingCards().map(c => c.value));
-console.log(`Looking for card with value: ${needed}`);
-
-// Output showed:
-Current score: 17
-Needed to reach target: 4
-Available cards in deck: [11, 10, 9, 8, 7, 6, 5, 3, 2, 1]
-Looking for card with value: 4
-Card found: [11] // ← BUG: Wrong card selected!
-```
-
-**Fix Applied**:
-```typescript
-// Before (incorrect):
-const perfectCard = availableCards[0]; // Always took first card!
-
-// After (correct):
-const perfectCard = availableCards.find(card => card.value === needed);
-if (perfectCard) {
-  game.deck.removeCard(perfectCard);
-  player.addCard(perfectCard, true);
-  return true;
-} else {
-  console.log(`No perfect card available (need ${needed})`);
-  return false;
-}
-```
-
-**Retest Output**:
-```
-Test 4: Testing Perfect Draw ability...
-Player score before: 17
-Target: 21
-Test Player uses ability: Perfect Draw
-Test Player draws [4] using Perfect Draw
-Ability activation result: true
-Player score after: 21
-
-✓ Test 4 passed!
-```
-
----
-
-#### Failure 4: Ability Deck Not Resetting Between Rounds
-
-**Test**: Multiple rounds with ability cards
-
-**Command**:
-```bash
-node src/abilityUsageTest.js
-```
-
-**Error Output**:
-```
-=== Ability Usage Test - Multiple Rounds ===
-
-Round 1:
-Player 1 ability hand: [Perfect Draw], [Shield]
-Player 2 ability hand: [One-Up], [Hush]
-✓ Round 1 completed
-
-Round 2:
-Player 1 ability hand: [Bless], [Return]
-Player 2 ability hand: [Go For 17], [Exchange]
-✓ Round 2 completed
-
-Round 3:
-Error: Cannot deal ability card - deck is empty
-Player 1 ability hand: []
-Player 2 ability hand: []
-
-✗ Test FAILED!
-Expected: Players should receive 2 abilities each round
-Actual: No abilities dealt in Round 3
-```
-
-**Root Cause**: 
-`setupNewRound()` was not calling `abilityDeck.reset()` to return used cards back to the deck.
-
-**Fix Applied**:
-```typescript
-private async setupNewRound(): Promise<void> {
-  // ... existing code ...
-  
-  // Fix: Reset ability deck before dealing
-  this.abilityDeck.reset();
-  this.abilityDeck.shuffle();
-  
-  // Deal 2 abilities to each player
-  for (let i = 0; i < 2; i++) {
-    const ability1 = this.abilityDeck.dealCard();
-    const ability2 = this.abilityDeck.dealCard();
-    
-    if (ability1) this.players[0].abilityHand.push(ability1);
-    if (ability2) this.players[1].abilityHand.push(ability2);
-  }
-}
-```
-
-**Retest Output**:
-```
-Round 3:
-Player 1 ability hand: [Two-Up], [Disservice]
-Player 2 ability hand: [Shield-Plus], [Refresh]
-✓ Round 3 completed
-
-✓ All rounds completed successfully!
-```
-
----
-
-### Timer and Settings Failures (February 2-3, 2026)
-
-#### Failure 5: Timer Force Draw on Busted Player
-
-**Test**: Timer expiration when player is busted
-
-**Command**:
-```bash
-node src/timerBugTest.js
-```
-
-**Error Output**:
-```
-=== Testing Timer Bug: Force Draw on Busted Player ===
-
-Setting up: Player busts with score 25
-
-⏰ Time's up! Forcing draw...
-You have busted and cannot draw more cards.
-
-⏰ Time's up! Forcing draw...
-You have busted and cannot draw more cards.
-
-⏰ Time's up! Forcing draw...
-You have busted and cannot draw more cards.
-
-[Infinite loop of error messages]
-```
-
-**Root Cause**: 
-Timer callback attempted to force draw without checking if player had already busted.
-
-**Fix Applied**:
-```typescript
-// Timer callback in Game.ts
-if (this.turnTimeRemaining <= 0) {
-  this.stopTurnTimer();
-  
-  const currentPlayer = this.players[this.currentPlayerIndex];
-  const currentPlayerStayed = (this.currentPlayerIndex === 0) ? 
-    this.player1Stayed : this.player2Stayed;
-  
-  // FIX: Check if player has already busted or stayed
-  if (currentPlayer.isBusted || currentPlayerStayed) {
-    console.log(`\n⏰ Time's up! Player has already ${currentPlayer.isBusted ? 'busted' : 'stayed'}.`);
-    this.switchTurn();
-  } else {
-    console.log(`\n⏰ Time's up! Forcing draw...`);
-    this.playerDraws().catch(err => console.error('Error forcing draw:', err));
-  }
-}
-```
-
-**Retest Output**:
-```
-=== Testing Timer Bug: Force Draw on Busted Player ===
-
-Player busts with score 25
-
-⏰ Time's up! Player has already busted.
-Turn switched to AI
-
-✓ Test passed - No infinite loop
-```
-
----
-
-#### Failure 6: Move Distance Shuffle Mode Returns 0
-
-**Test**: Shuffle mode distance calculation
-
-**Command**:
-```bash
-node src/moveDistanceTest.js
-```
-
-**Error Output**:
-```
-=== Testing Shuffle Mode ===
-
-Round 1: move distance = 0 (should be 1-3)
-Round 2: move distance = 0 (should be 1-3)
-Round 3: move distance = 1 (should be 1-3)
-Round 4: move distance = 0 (should be 1-3)
-
-✗ Test FAILED!
-Expected: All distances should be between 1-3
-Actual: Getting 0 values (invalid)
-```
-
-**Root Cause**: 
-`Math.random() * 3` produces values from 0-2.99, and `Math.floor()` makes it 0-2, not 1-3.
-
-**Fix Applied**:
-```typescript
-// Before (incorrect):
-this.moveDistance = Math.floor(Math.random() * 3);  // Gives 0, 1, 2
-
-// After (correct):
-this.moveDistance = Math.floor(Math.random() * 3) + 1;  // Gives 1, 2, 3
-```
-
-**Retest Output**:
-```
-Round 1: move distance = 3 (should be 1-3) ✓
-Round 2: move distance = 2 (should be 1-3) ✓
-Round 3: move distance = 1 (should be 1-3) ✓
-Round 4: move distance = 3 (should be 1-3) ✓
-
-✓ Test passed - All distances valid
-```
-
----
-
-### Stay Behavior Critical Failure (February 10, 2026)
-
-#### Failure 7: Players Locked Into Staying (CRITICAL BUG)
-
-**Test**: Players alternating between draw and stay
-
-**Command**:
-```bash
-node src/stayBugTest.js
-```
-
-**Error Output**:
-```
-=== Testing Stay Behavior ===
-
-Turn 1: Player1 draws
-Player1 draws: [5]
-New total: 9
-
-Turn 2: Player2 stays
-Player2 stays.
-
-Turn 3: Player1 wants to draw
-ERROR: Cannot draw - round has ended
-Both players have stayed.
-
-✗ CRITICAL TEST FAILURE!
-Expected: Player1 should be able to draw again
-Actual: Game incorrectly thinks both players stayed
-Debug: player1Stayed=false, player2Stayed=true
-       Logic: if (player1Stayed && player2Stayed) → evaluates to FALSE
-       But round still ending!
-```
-
-**Root Cause**: 
-The global `player1Stayed` and `player2Stayed` flags were being set but never reset when a player drew a card after previously staying.
-
-**Debugging Process**:
-```typescript
-// Added extensive logging:
-console.log(`DEBUG: Before draw - player1Stayed: ${this.player1Stayed}, player2Stayed: ${this.player2Stayed}`);
-console.log(`DEBUG: Current player: ${this.currentPlayerIndex}`);
-
-// Found the issue:
-// Player 2 stays → player2Stayed = true
-// Player 1 draws → player1Stayed remains false
-// Player 2 draws → player2Stayed STILL TRUE! (never reset)
-// Player 1 stays → player1Stayed = true
-// Now BOTH flags are true → Round ends incorrectly
-```
-
-**Fix Applied**:
-```typescript
-// Removed global stay flags entirely
-// Changed to tracking last player who stayed
-
-private lastPlayerIndexWhoStayed: number | null = null;
-
-public async playerStays(): Promise<void> {
-  console.log(`${currentPlayer.name} stays.`);
-  
-  // Check if different player stayed last turn
-  if (this.lastPlayerIndexWhoStayed !== null && 
-      this.lastPlayerIndexWhoStayed !== this.currentPlayerIndex) {
-    // Two different players stayed consecutively - end round
-    await this.endRound();
-    return;
-  }
-  
-  this.lastPlayerIndexWhoStayed = this.currentPlayerIndex;
-  this.switchTurn();
-}
-
-public async playerDraws(): Promise<void> {
-  // Reset the stayed tracker when drawing
-  this.lastPlayerIndexWhoStayed = null;
-  // ... rest of draw logic ...
-}
-```
-
-**Retest Output**:
-```
-=== Testing Stay Behavior ===
-
-Turn 1: Player1 draws
-Player1 draws: [5]
-
-Turn 2: Player2 stays
-Player2 stays.
-
-Turn 3: Player1 draws (after Player2 stayed)
-Player1 draws: [3]  ✓ SUCCESS - Can draw!
-
-Turn 4: Player2 draws (after previously staying)
-Player2 draws: [6]  ✓ SUCCESS - Can draw after staying!
-
-Turn 5: Player1 stays
-Player1 stays.
-
-Turn 6: Player2 stays
-Player2 stays.
-Both players stayed consecutively - Round ends.
-
-✓ CRITICAL BUG FIXED!
-```
-
----
-
-### Online Multiplayer Socket.io Failures (February 12-13, 2026)
-
-#### Failure 8: Room Code Collision
-
-**Test**: Creating multiple rooms simultaneously
-
-**Command**:
-```bash
-node src/multiplayerTest.js
-```
-
-**Error Output**:
-```
-=== Testing Room Creation ===
-
-Creating Room 1...
-Room created: ABC123
-
-Creating Room 2...
-Room created: ABC123
-
-Creating Room 3...
-Room created: ABC123
-
-✗ Test FAILED!
-Expected: Unique room codes for each room
-Actual: All rooms got same code "ABC123"
-
-ERROR: Player2 tried to join Room 1 but ended up in Room 3
-```
-
-**Root Cause**: 
-Room code generation was using `Math.random()` with insufficient entropy, causing collisions. The function didn't verify uniqueness.
-
-**Original Code**:
-```typescript
-function generateRoomCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-```
-
-**Fix Applied**:
-```typescript
-import * as crypto from 'crypto';
-
-function generateRoomCode(): string {
-  const bytes = crypto.randomBytes(4);
-  return bytes.toString('hex').toUpperCase().substring(0, 6);
-}
-
-function generateUniqueRoomCode(): string {
-  let code: string;
-  let attempts = 0;
-  
-  do {
-    code = generateRoomCode();
-    attempts++;
-    
-    if (attempts > 100) {
-      throw new Error('Unable to generate unique room code');
-    }
-  } while (rooms.has(code));
-  
-  return code;
-}
-```
-
-**Retest Output**:
-```
-Creating Room 1...
-Room created: 4F2A9C
-
-Creating Room 2...
-Room created: B8E731
-
-Creating Room 3...
-Room created: 29D5F4
-
-✓ All room codes unique
-```
-
----
-
-#### Failure 9: Race Condition in Turn Management
-
-**Test**: Rapid player actions in multiplayer
-
-**Command**:
-```bash
-node src/multiplayerRaceTest.js
-```
-
-**Error Output**:
-```
-=== Testing Rapid Actions ===
-
-Player 1 draws...
-Player 2 draws...
-Player 1 draws...
-
-ERROR: Player1 drew twice in a row!
-Current player after P1 draw: 1 (should be 1)
-Current player after P2 draw: 1 (should be 0)
-Current player after P1 draw again: 0
-
-✗ Test FAILED!
-Turn management has race condition
-```
-
-**Root Cause**: 
-Turn switching was happening before the server validated whose turn it actually was.
-
-**Fix Applied**:
-```typescript
-// In server.ts - playerDraw handler
-socket.on('playerDraw', async (roomCode: string) => {
-  const room = rooms.get(roomCode);
-  if (!room || !room.game) return;
-
-  const playerData = room.players.find(p => p.socketId === socket.id);
-  if (!playerData) return;
-
-  // FIX: Validate it's this player's turn BEFORE allowing action
-  if (room.game.currentPlayerIndex !== playerData.playerIndex) {
-    socket.emit('error', { message: 'Not your turn' });
-    return;  // Don't process the action
-  }
-
-  await room.game.playerDraws();
-  room.lastActivity = new Date();
-
-  io.to(roomCode).emit('gameUpdate', {
-    gameState: getGameState(room.game)
-  });
-});
-```
-
-**Retest Output**:
-```
-Player 1 draws... ✓
-Player 2 draws... ✓
-Player 1 attempts to draw... ✗ Rejected: "Not your turn"
-
-✓ Test passed - Turn validation working
-```
-
----
-
-### Summary of Failures and Fixes
-
-| Failure # | Issue | Severity | Time to Fix | Status |
-|-----------|-------|----------|-------------|---------|
-| 1 | TypeScript interface mismatch | Medium | 15 min | ✅ Fixed |
-| 2 | AI infinite loop on bust | High | 30 min | ✅ Fixed |
-| 3 | Perfect Draw wrong card | Medium | 45 min | ✅ Fixed |
-| 4 | Ability deck not resetting | Medium | 20 min | ✅ Fixed |
-| 5 | Timer force draw on busted player | High | 40 min | ✅ Fixed |
-| 6 | Move distance shuffle returns 0 | Low | 10 min | ✅ Fixed |
-| 7 | Stay behavior locks players | **CRITICAL** | 2 hours | ✅ Fixed |
-| 8 | Room code collision | Medium | 35 min | ✅ Fixed |
-| 9 | Multiplayer race condition | High | 50 min | ✅ Fixed |
-
-**Total Debug Time**: ~6 hours across 4 weeks  
-**Critical Bugs Found**: 1 (Stay behavior)  
-**All Bugs Fixed**: 9/9 (100%)
-
----
-
-### Lessons Learned from Failures
-
-1. **Always check state flags before taking action** - Multiple bugs (2, 5) came from not checking `isBusted` or `stayed` flags before attempting actions.
-
-2. **Reset state properly between rounds** - Failure #4 showed that state must be explicitly reset, not just assumed to be clean.
-
-3. **Test edge cases early** - The stay behavior bug (#7) was critical but only discovered after extensive testing of alternating actions.
-
-4. **Use cryptographic random for security** - Simple `Math.random()` caused collisions (#8) in production scenarios.
-
-5. **Validate before acting in multiplayer** - Race conditions (#9) require server-side validation before any state changes.
-
-6. **Add comprehensive logging** - Debug logging was crucial in finding root causes, especially for #7.
-
-7. **Math edge cases matter** - Simple off-by-one errors (#6) in random ranges can cause invalid states.
-
----
-
-## Single Player & Multiplayer Tests (PR #2)
+### Successful Tests After Fixes
 
 ### Test File: `src/aiTest.ts`
 
@@ -1018,6 +453,164 @@ Player 2: Player2
 ---
 
 ## Ability Card System Tests (PR #3)
+
+### Early Implementation Failures (January 20-27, 2026)
+
+During the development of the ability card system, several bugs were discovered through testing that required debugging and fixes.
+
+---
+
+#### Failure 3: Perfect Draw Returns Wrong Card
+
+**Test**: Ability card "Perfect Draw" test
+
+**Command**:
+```bash
+node src/abilityTest.js
+```
+
+**Error Output**:
+```
+Test 4: Testing Perfect Draw ability...
+
+=== Round 1 ===
+Deck shuffled for new round!
+Cards dealt!
+Test Player: [Hidden], [8]
+Player 2: [Hidden], [7]
+
+Player score before: 17
+Target: 21
+Test Player uses ability: Perfect Draw
+Test Player draws [11] using Perfect Draw
+Ability activation result: true
+Player score after: 28
+
+✗ Test 4 FAILED!
+Expected: Player draws card that brings them to exactly 21 (should be 4)
+Actual: Player drew 11 and busted (score: 28)
+```
+
+**Root Cause**: 
+Perfect Draw was selecting the first card that matched the needed value, but wasn't checking if the deck actually contained that card. It was pulling from an unfiltered deck array.
+
+**Debugging Process**:
+```typescript
+// Added debug logging:
+console.log(`Current score: ${currentScore}`);
+console.log(`Needed to reach target: ${needed}`);
+console.log(`Available cards in deck:`, game.deck.getRemainingCards().map(c => c.value));
+console.log(`Looking for card with value: ${needed}`);
+
+// Output showed:
+Current score: 17
+Needed to reach target: 4
+Available cards in deck: [11, 10, 9, 8, 7, 6, 5, 3, 2, 1]
+Looking for card with value: 4
+Card found: [11] // ← BUG: Wrong card selected!
+```
+
+**Fix Applied**:
+```typescript
+// Before (incorrect):
+const perfectCard = availableCards[0]; // Always took first card!
+
+// After (correct):
+const perfectCard = availableCards.find(card => card.value === needed);
+if (perfectCard) {
+  game.deck.removeCard(perfectCard);
+  player.addCard(perfectCard, true);
+  return true;
+} else {
+  console.log(`No perfect card available (need ${needed})`);
+  return false;
+}
+```
+
+**Retest Output**:
+```
+Test 4: Testing Perfect Draw ability...
+Player score before: 17
+Target: 21
+Test Player uses ability: Perfect Draw
+Test Player draws [4] using Perfect Draw
+Ability activation result: true
+Player score after: 21
+
+✓ Test 4 passed!
+```
+
+---
+
+#### Failure 4: Ability Deck Not Resetting Between Rounds
+
+**Test**: Multiple rounds with ability cards
+
+**Command**:
+```bash
+node src/abilityUsageTest.js
+```
+
+**Error Output**:
+```
+=== Ability Usage Test - Multiple Rounds ===
+
+Round 1:
+Player 1 ability hand: [Perfect Draw], [Shield]
+Player 2 ability hand: [One-Up], [Hush]
+✓ Round 1 completed
+
+Round 2:
+Player 1 ability hand: [Bless], [Return]
+Player 2 ability hand: [Go For 17], [Exchange]
+✓ Round 2 completed
+
+Round 3:
+Error: Cannot deal ability card - deck is empty
+Player 1 ability hand: []
+Player 2 ability hand: []
+
+✗ Test FAILED!
+Expected: Players should receive 2 abilities each round
+Actual: No abilities dealt in Round 3
+```
+
+**Root Cause**: 
+`setupNewRound()` was not calling `abilityDeck.reset()` to return used cards back to the deck.
+
+**Fix Applied**:
+```typescript
+private async setupNewRound(): Promise<void> {
+  // ... existing code ...
+  
+  // Fix: Reset ability deck before dealing
+  this.abilityDeck.reset();
+  this.abilityDeck.shuffle();
+  
+  // Deal 2 abilities to each player
+  for (let i = 0; i < 2; i++) {
+    const ability1 = this.abilityDeck.dealCard();
+    const ability2 = this.abilityDeck.dealCard();
+    
+    if (ability1) this.players[0].abilityHand.push(ability1);
+    if (ability2) this.players[1].abilityHand.push(ability2);
+  }
+}
+```
+
+**Retest Output**:
+```
+Round 3:
+Player 1 ability hand: [Two-Up], [Disservice]
+Player 2 ability hand: [Shield-Plus], [Refresh]
+✓ Round 3 completed
+
+✓ All rounds completed successfully!
+```
+
+---
+
+### Successful Tests After Fixes
 
 ### Test File: `src/abilityTest.ts`
 
@@ -1253,6 +846,126 @@ Test 12: Testing Two-Up ability...
 ---
 
 ## Game Settings Tests (PR #5)
+
+### Early Implementation Failures (February 2-3, 2026)
+
+The timer and settings system revealed several bugs during testing that needed to be addressed.
+
+---
+
+#### Failure 5: Timer Force Draw on Busted Player
+
+**Test**: Timer expiration when player is busted
+
+**Command**:
+```bash
+node src/timerBugTest.js
+```
+
+**Error Output**:
+```
+=== Testing Timer Bug: Force Draw on Busted Player ===
+
+Setting up: Player busts with score 25
+
+⏰ Time's up! Forcing draw...
+You have busted and cannot draw more cards.
+
+⏰ Time's up! Forcing draw...
+You have busted and cannot draw more cards.
+
+⏰ Time's up! Forcing draw...
+You have busted and cannot draw more cards.
+
+[Infinite loop of error messages]
+```
+
+**Root Cause**: 
+Timer callback attempted to force draw without checking if player had already busted.
+
+**Fix Applied**:
+```typescript
+// Timer callback in Game.ts
+if (this.turnTimeRemaining <= 0) {
+  this.stopTurnTimer();
+  
+  const currentPlayer = this.players[this.currentPlayerIndex];
+  const currentPlayerStayed = (this.currentPlayerIndex === 0) ? 
+    this.player1Stayed : this.player2Stayed;
+  
+  // FIX: Check if player has already busted or stayed
+  if (currentPlayer.isBusted || currentPlayerStayed) {
+    console.log(`\n⏰ Time's up! Player has already ${currentPlayer.isBusted ? 'busted' : 'stayed'}.`);
+    this.switchTurn();
+  } else {
+    console.log(`\n⏰ Time's up! Forcing draw...`);
+    this.playerDraws().catch(err => console.error('Error forcing draw:', err));
+  }
+}
+```
+
+**Retest Output**:
+```
+=== Testing Timer Bug: Force Draw on Busted Player ===
+
+Player busts with score 25
+
+⏰ Time's up! Player has already busted.
+Turn switched to AI
+
+✓ Test passed - No infinite loop
+```
+
+---
+
+#### Failure 6: Move Distance Shuffle Mode Returns 0
+
+**Test**: Shuffle mode distance calculation
+
+**Command**:
+```bash
+node src/moveDistanceTest.js
+```
+
+**Error Output**:
+```
+=== Testing Shuffle Mode ===
+
+Round 1: move distance = 0 (should be 1-3)
+Round 2: move distance = 0 (should be 1-3)
+Round 3: move distance = 1 (should be 1-3)
+Round 4: move distance = 0 (should be 1-3)
+
+✗ Test FAILED!
+Expected: All distances should be between 1-3
+Actual: Getting 0 values (invalid)
+```
+
+**Root Cause**: 
+`Math.random() * 3` produces values from 0-2.99, and `Math.floor()` makes it 0-2, not 1-3.
+
+**Fix Applied**:
+```typescript
+// Before (incorrect):
+this.moveDistance = Math.floor(Math.random() * 3);  // Gives 0, 1, 2
+
+// After (correct):
+this.moveDistance = Math.floor(Math.random() * 3) + 1;  // Gives 1, 2, 3
+```
+
+**Retest Output**:
+```
+Round 1: move distance = 3 (should be 1-3) ✓
+Round 2: move distance = 2 (should be 1-3) ✓
+Round 3: move distance = 1 (should be 1-3) ✓
+Round 4: move distance = 3 (should be 1-3) ✓
+
+✓ Test passed - All distances valid
+```
+
+---
+
+### Successful Tests After Fixes
 
 ### Test File: `src/settingsTest.ts`
 
@@ -1582,6 +1295,160 @@ Results:
 
 ## Online Multiplayer Tests (PR #7)
 
+### Early Implementation Failures (February 12-13, 2026)
+
+Socket.io implementation revealed critical concurrency and security issues that needed immediate attention.
+
+---
+
+#### Failure 8: Room Code Collision
+
+**Test**: Creating multiple rooms simultaneously
+
+**Command**:
+```bash
+node src/multiplayerTest.js
+```
+
+**Error Output**:
+```
+=== Testing Room Creation ===
+
+Creating Room 1...
+Room created: ABC123
+
+Creating Room 2...
+Room created: ABC123
+
+Creating Room 3...
+Room created: ABC123
+
+✗ Test FAILED!
+Expected: Unique room codes for each room
+Actual: All rooms got same code "ABC123"
+
+ERROR: Player2 tried to join Room 1 but ended up in Room 3
+```
+
+**Root Cause**: 
+Room code generation was using `Math.random()` with insufficient entropy, causing collisions. The function didn't verify uniqueness.
+
+**Original Code**:
+```typescript
+function generateRoomCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+```
+
+**Fix Applied**:
+```typescript
+import * as crypto from 'crypto';
+
+function generateRoomCode(): string {
+  const bytes = crypto.randomBytes(4);
+  return bytes.toString('hex').toUpperCase().substring(0, 6);
+}
+
+function generateUniqueRoomCode(): string {
+  let code: string;
+  let attempts = 0;
+  
+  do {
+    code = generateRoomCode();
+    attempts++;
+    
+    if (attempts > 100) {
+      throw new Error('Unable to generate unique room code');
+    }
+  } while (rooms.has(code));
+  
+  return code;
+}
+```
+
+**Retest Output**:
+```
+Creating Room 1...
+Room created: 4F2A9C
+
+Creating Room 2...
+Room created: B8E731
+
+Creating Room 3...
+Room created: 29D5F4
+
+✓ All room codes unique
+```
+
+---
+
+#### Failure 9: Race Condition in Turn Management
+
+**Test**: Rapid player actions in multiplayer
+
+**Command**:
+```bash
+node src/multiplayerRaceTest.js
+```
+
+**Error Output**:
+```
+=== Testing Rapid Actions ===
+
+Player 1 draws...
+Player 2 draws...
+Player 1 draws...
+
+ERROR: Player1 drew twice in a row!
+Current player after P1 draw: 1 (should be 1)
+Current player after P2 draw: 1 (should be 0)
+Current player after P1 draw again: 0
+
+✗ Test FAILED!
+Turn management has race condition
+```
+
+**Root Cause**: 
+Turn switching was happening before the server validated whose turn it actually was.
+
+**Fix Applied**:
+```typescript
+// In server.ts - playerDraw handler
+socket.on('playerDraw', async (roomCode: string) => {
+  const room = rooms.get(roomCode);
+  if (!room || !room.game) return;
+
+  const playerData = room.players.find(p => p.socketId === socket.id);
+  if (!playerData) return;
+
+  // FIX: Validate it's this player's turn BEFORE allowing action
+  if (room.game.currentPlayerIndex !== playerData.playerIndex) {
+    socket.emit('error', { message: 'Not your turn' });
+    return;  // Don't process the action
+  }
+
+  await room.game.playerDraws();
+  room.lastActivity = new Date();
+
+  io.to(roomCode).emit('gameUpdate', {
+    gameState: getGameState(room.game)
+  });
+});
+```
+
+**Retest Output**:
+```
+Player 1 draws... ✓
+Player 2 draws... ✓
+Player 1 attempts to draw... ✗ Rejected: "Not your turn"
+
+✓ Test passed - Turn validation working
+```
+
+---
+
+### Successful Tests After Fixes
+
 ### Test File: `src/multiplayerTest.ts`
 
 **Purpose**: Test Socket.io online multiplayer functionality
@@ -1671,6 +1538,120 @@ Success Rate: 100%
 ---
 
 ## Bug Fix Tests
+
+### Critical Stay Behavior Bug (February 10, 2026)
+
+This was the most critical bug discovered during development, requiring a 2-hour debugging session and complete rewrite of the stay logic.
+
+---
+
+#### Failure 7: Players Locked Into Staying (CRITICAL BUG)
+
+**Test**: Players alternating between draw and stay
+
+**Command**:
+```bash
+node src/stayBugTest.js
+```
+
+**Error Output**:
+```
+=== Testing Stay Behavior ===
+
+Turn 1: Player1 draws
+Player1 draws: [5]
+New total: 9
+
+Turn 2: Player2 stays
+Player2 stays.
+
+Turn 3: Player1 wants to draw
+ERROR: Cannot draw - round has ended
+Both players have stayed.
+
+✗ CRITICAL TEST FAILURE!
+Expected: Player1 should be able to draw again
+Actual: Game incorrectly thinks both players stayed
+Debug: player1Stayed=false, player2Stayed=true
+       Logic: if (player1Stayed && player2Stayed) → evaluates to FALSE
+       But round still ending!
+```
+
+**Root Cause**: 
+The global `player1Stayed` and `player2Stayed` flags were being set but never reset when a player drew a card after previously staying.
+
+**Debugging Process**:
+```typescript
+// Added extensive logging:
+console.log(`DEBUG: Before draw - player1Stayed: ${this.player1Stayed}, player2Stayed: ${this.player2Stayed}`);
+console.log(`DEBUG: Current player: ${this.currentPlayerIndex}`);
+
+// Found the issue:
+// Player 2 stays → player2Stayed = true
+// Player 1 draws → player1Stayed remains false
+// Player 2 draws → player2Stayed STILL TRUE! (never reset)
+// Player 1 stays → player1Stayed = true
+// Now BOTH flags are true → Round ends incorrectly
+```
+
+**Fix Applied**:
+```typescript
+// Removed global stay flags entirely
+// Changed to tracking last player who stayed
+
+private lastPlayerIndexWhoStayed: number | null = null;
+
+public async playerStays(): Promise<void> {
+  console.log(`${currentPlayer.name} stays.`);
+  
+  // Check if different player stayed last turn
+  if (this.lastPlayerIndexWhoStayed !== null && 
+      this.lastPlayerIndexWhoStayed !== this.currentPlayerIndex) {
+    // Two different players stayed consecutively - end round
+    await this.endRound();
+    return;
+  }
+  
+  this.lastPlayerIndexWhoStayed = this.currentPlayerIndex;
+  this.switchTurn();
+}
+
+public async playerDraws(): Promise<void> {
+  // Reset the stayed tracker when drawing
+  this.lastPlayerIndexWhoStayed = null;
+  // ... rest of draw logic ...
+}
+```
+
+**Retest Output**:
+```
+=== Testing Stay Behavior ===
+
+Turn 1: Player1 draws
+Player1 draws: [5]
+
+Turn 2: Player2 stays
+Player2 stays.
+
+Turn 3: Player1 draws (after Player2 stayed)
+Player1 draws: [3]  ✓ SUCCESS - Can draw!
+
+Turn 4: Player2 draws (after previously staying)
+Player2 draws: [6]  ✓ SUCCESS - Can draw after staying!
+
+Turn 5: Player1 stays
+Player1 stays.
+
+Turn 6: Player2 stays
+Player2 stays.
+Both players stayed consecutively - Round ends.
+
+✓ CRITICAL BUG FIXED!
+```
+
+---
+
+### Verification Tests
 
 ### Test File: `src/allBugFixTests.ts`
 
