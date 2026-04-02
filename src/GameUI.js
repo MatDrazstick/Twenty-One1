@@ -192,7 +192,7 @@ export class GameUI {
         const player = this.game.players[playerIndex];
         ctx.textBaseline = 'middle';
         if (isLocal) {
-            ctx.font = 'italic bold 62px "Times New Roman"';
+            ctx.font = 'bold italic 62px "Times New Roman"';
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'left';
             ctx.fillText(`${player.calculateTotalScore()}/21`, x, y);

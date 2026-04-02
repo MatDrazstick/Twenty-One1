@@ -18,7 +18,6 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            overflow: hidden;
         }
 
         /* ── Lobby screens ── */
@@ -582,8 +581,7 @@
         lobby.classList.add('hidden');
         gameCanvas.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-        document.body.style.padding  = '0';
-        if (!renderer) {
+        document.body.style.padding  = '0';        if (!renderer) {
             renderer = new MultiplayerRenderer(gameCanvas);
             renderer.onDraw    = () => socket.emit('player-draw');
             renderer.onStay    = () => socket.emit('player-stay');

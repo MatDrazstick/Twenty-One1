@@ -52,7 +52,7 @@ export class GameUI {
   }
 
   private resizeCanvas(): void {
-    this.canvas.width  = window.innerWidth;
+    this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
   }
 
@@ -215,7 +215,7 @@ export class GameUI {
     ctx.textBaseline = 'middle';
 
     if (isLocal) {
-      ctx.font = 'italic bold 62px "Times New Roman"';
+      ctx.font = 'bold italic 62px "Times New Roman"';
       ctx.fillStyle = '#fff';
       ctx.textAlign = 'left';
       ctx.fillText(`${player.calculateTotalScore()}/21`, x, y);
