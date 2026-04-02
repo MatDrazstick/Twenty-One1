@@ -1,21 +1,29 @@
 // src/GameUI.ts
-// Handles all canvas-based rendering and user input for the Twenty-One game.
-// Uses the Game class from Game.ts as its state source.
+// Canvas rendering and input handling for the Twenty-One game.
+// Works from a live Game instance (singleplayer / local AI mode).
 export class GameUI {
     canvas;
     ctx;
     game;
-    showAbilityMenu = false;
-    mouseX = 0;
-    mouseY = 0;
-    hoveredAbilityIndex = -1;
-    animFrameId = null;
     localPlayerIndex;
-    // Tooltip state
+    // Ability sidebar state
+    showAbilityMenu = false;
+    hoveredAbilityIndex = -1;
     tooltipAbility = null;
     tooltipX = 0;
     tooltipY = 0;
-    // Bound resize handler so it can be removed later
+    // Ability flash notification
+    abilityFlashText = '';
+    abilityFlashEnd = 0;
+    lastSeenAbilityKey = '';
+    // Smooth machine indicator position (lerp toward actual position)
+    displayedMachinePos = 6;
+    // Table layout bounds – updated each draw() call
+    tblL = 0;
+    tblR = 0;
+    tblT = 0;
+    tblB = 0;
+    animFrameId = null;
     boundResize;
     constructor(canvas, game, localPlayerIndex = 0) {
         this.canvas = canvas;
@@ -25,6 +33,7 @@ export class GameUI {
         this.ctx = context;
         this.game = game;
         this.localPlayerIndex = localPlayerIndex;
+        this.displayedMachinePos = game.machinePosition;
         this.boundResize = () => this.resizeCanvas();
         window.addEventListener('resize', this.boundResize);
         this.resizeCanvas();
@@ -50,27 +59,22 @@ export class GameUI {
                     return;
                 }
             }
-            const isLocalTurn = this.game.currentPlayerIndex === this.localPlayerIndex;
-            if (isLocalTurn && !this.game.gameOver) {
+            if (this.game.currentPlayerIndex === this.localPlayerIndex && !this.game.gameOver) {
                 await this.game.playerDraws();
             }
         });
         this.canvas.addEventListener('contextmenu', async (e) => {
             e.preventDefault();
-            const isLocalTurn = this.game.currentPlayerIndex === this.localPlayerIndex;
-            if (isLocalTurn && !this.game.gameOver) {
+            if (this.game.currentPlayerIndex === this.localPlayerIndex && !this.game.gameOver) {
                 await this.game.playerStays();
             }
         });
         this.canvas.addEventListener('mousemove', (e) => {
-            this.mouseX = e.clientX;
-            this.mouseY = e.clientY;
             if (this.showAbilityMenu) {
                 const idx = this.getHoveredAbilityIndex(e.clientX, e.clientY);
                 this.hoveredAbilityIndex = idx;
                 if (idx >= 0) {
-                    const player = this.game.players[this.localPlayerIndex];
-                    this.tooltipAbility = player.abilityHand[idx] ?? null;
+                    this.tooltipAbility = this.game.players[this.localPlayerIndex].abilityHand[idx] ?? null;
                     this.tooltipX = e.clientX;
                     this.tooltipY = e.clientY;
                 }
@@ -84,27 +88,23 @@ export class GameUI {
             }
         });
     }
-    getAbilityCardBounds(index) {
-        const sidebarW = 300;
-        const x = this.canvas.width - sidebarW;
-        const cardY = 100 + index * 85;
-        return { x: x + 15, y: cardY, w: sidebarW - 30, h: 70 };
+    // ── Ability sidebar ──────────────────────────────────────────────────────────
+    abilityCardBounds(i) {
+        const sw = 300;
+        return { x: this.canvas.width - sw + 15, y: 100 + i * 85, w: sw - 30, h: 70 };
     }
     getHoveredAbilityIndex(mx, my) {
-        const player = this.game.players[this.localPlayerIndex];
-        for (let i = 0; i < player.abilityHand.length; i++) {
-            const b = this.getAbilityCardBounds(i);
-            if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+        const hand = this.game.players[this.localPlayerIndex].abilityHand;
+        for (let i = 0; i < hand.length; i++) {
+            const b = this.abilityCardBounds(i);
+            if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h)
                 return i;
-            }
         }
         return -1;
     }
+    // ── Render loop ─────────────────────────────────────────────────────────────
     startRenderLoop() {
-        const loop = () => {
-            this.draw();
-            this.animFrameId = requestAnimationFrame(loop);
-        };
+        const loop = () => { this.draw(); this.animFrameId = requestAnimationFrame(loop); };
         this.animFrameId = requestAnimationFrame(loop);
     }
     destroy() {
@@ -114,378 +114,450 @@ export class GameUI {
         }
         window.removeEventListener('resize', this.boundResize);
     }
-    // ─── Drawing helpers ───────────────────────────────────────────────────────
-    /** Draw the green felt table surface in the lower portion of the screen */
-    drawTable() {
+    // ── Drawing helpers ──────────────────────────────────────────────────────────
+    /** Dark bordered table surface – three implicit zones separated by faint lines. */
+    drawTableSurface() {
         const ctx = this.ctx;
-        const W = this.canvas.width;
-        const H = this.canvas.height;
-        const tableTop = H * 0.52;
-        // Felt surface gradient
-        const feltGrad = ctx.createLinearGradient(W / 2, tableTop, W / 2, H);
-        feltGrad.addColorStop(0, '#1d4a21'); // darker far edge
-        feltGrad.addColorStop(0.4, '#2a5e2e'); // main felt green
-        feltGrad.addColorStop(1, '#162e18'); // darker near edge
-        ctx.fillStyle = feltGrad;
-        ctx.fillRect(0, tableTop, W, H - tableTop);
-        // Subtle felt texture (noise lines)
-        ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+        const { tblL, tblT, tblR, tblB } = this;
+        const w = tblR - tblL;
+        const h = tblB - tblT;
+        // Table body
+        ctx.fillStyle = '#0f0f0f';
+        ctx.fillRect(tblL, tblT, w, h);
+        // Outer border
+        ctx.strokeStyle = '#2a2a2a';
         ctx.lineWidth = 1;
-        for (let y = tableTop; y < H; y += 6) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(W, y);
-            ctx.stroke();
-        }
-        // Table edge — bright top border
-        ctx.strokeStyle = '#4a7a4e';
-        ctx.lineWidth = 3;
+        ctx.strokeRect(tblL, tblT, w, h);
+        // Center divider (separates opponent side from player side)
+        const midY = tblT + h / 2;
+        ctx.strokeStyle = '#1e1e1e';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 8]);
         ctx.beginPath();
-        ctx.moveTo(0, tableTop);
-        ctx.lineTo(W, tableTop);
+        ctx.moveTo(tblL + 20, midY);
+        ctx.lineTo(tblR - 20, midY);
         ctx.stroke();
-        // Inner shadow on table edge
-        const edgeShadow = ctx.createLinearGradient(0, tableTop, 0, tableTop + 18);
-        edgeShadow.addColorStop(0, 'rgba(0,0,0,0.45)');
-        edgeShadow.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = edgeShadow;
-        ctx.fillRect(0, tableTop, W, 18);
+        ctx.setLineDash([]);
     }
-    drawCard(x, y, value, isFaceUp, isOwner) {
+    /** Single playing card. */
+    drawCard(x, y, value, faceup, isOwner) {
         const ctx = this.ctx;
-        const w = 80;
-        const h = 110;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        if (isFaceUp) {
-            ctx.fillStyle = '#e3e3e3';
-        }
-        else {
-            ctx.fillStyle = isOwner ? '#d4d4d4' : '#1a1a1a';
-        }
-        ctx.fillRect(x, y, w, h);
+        const W = 80, H = 110;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.fillStyle = faceup ? '#e3e3e3' : (isOwner ? '#d4d4d4' : '#1a1a1a');
+        ctx.fillRect(x, y, W, H);
         ctx.shadowBlur = 0;
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, w, h);
+        ctx.strokeRect(x, y, W, H);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = 'bold 40px "Times New Roman"';
-        if (isFaceUp) {
+        if (faceup) {
+            ctx.font = 'bold 40px "Times New Roman"';
             ctx.fillStyle = '#000';
-            ctx.fillText(value.toString(), x + w / 2, y + h / 2);
+            ctx.fillText(value.toString(), x + W / 2, y + H / 2);
+            // Scuff-mark detail
             ctx.lineWidth = 0.5;
-            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.strokeStyle = 'rgba(0,0,0,0.18)';
             ctx.beginPath();
             ctx.moveTo(x + 10, y + 10);
-            ctx.lineTo(x + 20, y + 30);
+            ctx.lineTo(x + 22, y + 32);
             ctx.stroke();
         }
+        else if (isOwner) {
+            ctx.font = 'bold 38px "Times New Roman"';
+            ctx.fillStyle = 'rgba(0,0,0,0.35)';
+            ctx.fillText(value.toString(), x + W / 2, y + H / 2);
+            ctx.font = '10px Courier';
+            ctx.fillStyle = '#555';
+            ctx.fillText('(HIDDEN)', x + W / 2, y + H - 14);
+        }
         else {
-            if (isOwner) {
-                ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                ctx.fillText(value.toString(), x + w / 2, y + h / 2);
-                ctx.font = '12px Courier';
-                ctx.fillStyle = '#555';
-                ctx.fillText('(HIDDEN)', x + w / 2, y + h - 15);
-            }
-            else {
-                ctx.fillStyle = '#555';
-                ctx.fillText('?', x + w / 2, y + h / 2);
-            }
+            ctx.font = 'bold 36px "Times New Roman"';
+            ctx.fillStyle = '#444';
+            ctx.fillText('?', x + W / 2, y + H / 2);
         }
     }
     drawPlayerCards(playerIndex, cardsY, isLocal) {
-        const player = this.game.players[playerIndex];
-        const cards = player.hand;
-        const cardSpacing = 90;
-        const startX = this.canvas.width / 2 - (cards.length * cardSpacing) / 2;
-        cards.forEach((card, i) => {
-            this.drawCard(startX + i * cardSpacing, cardsY, card.values, card.faceup, isLocal);
-        });
+        const cards = this.game.players[playerIndex].hand;
+        const spacing = 88;
+        const cx = this.tblL + (this.tblR - this.tblL) / 2;
+        const startX = cx - (cards.length * spacing) / 2;
+        cards.forEach((c, i) => this.drawCard(startX + i * spacing, cardsY, c.values, c.faceup, isLocal));
     }
-    /**
-     * Score display — RE7 style:
-     *  Local player:  large italic "16/21" bottom-left
-     *  Opponent:      smaller "?+6/21" near opponent cards
-     */
+    /** Score display. Local = large italic; Opponent = compact with "?" for hidden. */
     drawScore(playerIndex, x, y, isLocal) {
         const ctx = this.ctx;
         const player = this.game.players[playerIndex];
         ctx.textBaseline = 'middle';
         if (isLocal) {
-            const total = player.calculateTotalScore();
+            ctx.font = 'italic bold 62px "Times New Roman"';
             ctx.fillStyle = '#fff';
-            ctx.font = 'italic bold 64px "Times New Roman"';
             ctx.textAlign = 'left';
-            ctx.fillText(`${total}/21`, x, y);
+            ctx.fillText(`${player.calculateTotalScore()}/21`, x, y);
         }
         else {
-            const visible = player.calculateVisibleScore();
-            const hasFaceDown = player.faceDownCard !== null && !player.faceDownCard.faceup;
-            const text = hasFaceDown ? `?+${visible}/21` : `${visible}/21`;
-            ctx.fillStyle = '#ccc';
-            ctx.font = 'italic 32px "Times New Roman"';
+            const vis = player.calculateVisibleScore();
+            const hasFD = player.faceDownCard !== null && !player.faceDownCard.faceup;
+            ctx.font = 'italic 30px "Times New Roman"';
+            ctx.fillStyle = '#bbb';
             ctx.textAlign = 'left';
-            ctx.fillText(text, x, y);
+            ctx.fillText(hasFD ? `?+${vis}/21` : `${vis}/21`, x, y);
         }
     }
     /**
-     * Machine track (green light indicator).
-     * Hidden during card-playing phase; shown when the game is over.
+     * Left-side machine distance box (always visible).
+     * Shows P2 DIST / MOVE / P1 DIST based on current machinePosition.
+     *
+     *  Position 0 = P1 zone, 12 = P2 zone. Machine starts at 6.
+     *  P1 DIST = distance machine must still travel to reach P1 = machinePosition
+     *  P2 DIST = distance machine must still travel to reach P2 = 12 - machinePosition
      */
-    drawMachine(centerY, visible) {
-        if (!visible)
-            return;
+    drawMachineBox() {
         const ctx = this.ctx;
-        const trackWidth = Math.min(400, this.canvas.width * 0.5);
-        const trackHeight = 10;
-        const trackX = this.canvas.width / 2 - trackWidth / 2;
-        ctx.fillStyle = '#111';
-        ctx.fillRect(trackX, centerY - trackHeight / 2, trackWidth, trackHeight);
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(trackX, centerY - trackHeight / 2, trackWidth, trackHeight);
-        ctx.strokeStyle = '#444';
+        const bx = 10, bw = 148;
+        const H = this.canvas.height;
+        const by = H * 0.38, bh = 168;
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = '#2a2a2a';
         ctx.lineWidth = 1;
-        for (let i = 0; i <= 12; i++) {
-            const nx = trackX + (i / 12) * trackWidth;
+        ctx.strokeRect(bx, by, bw, bh);
+        const p1Dist = this.game.machinePosition;
+        const p2Dist = 12 - this.game.machinePosition;
+        const move = this.game.moveDistance;
+        const drawRow = (label, val, ry) => {
+            ctx.font = '10px Courier';
+            ctx.fillStyle = '#555';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(label, bx + 12, ry);
+            ctx.font = 'bold 26px Courier';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(val.toString(), bx + 12, ry + 14);
+        };
+        const sep = (sy) => {
+            ctx.strokeStyle = '#1e1e1e';
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(nx, centerY - 10);
-            ctx.lineTo(nx, centerY + 10);
+            ctx.moveTo(bx + 10, sy);
+            ctx.lineTo(bx + bw - 10, sy);
+            ctx.stroke();
+        };
+        drawRow('P2 DIST', p2Dist, by + 10);
+        sep(by + 58);
+        drawRow('MOVE', move, by + 66);
+        sep(by + 114);
+        drawRow('P1 DIST', p1Dist, by + 122);
+    }
+    /** Machine track – shown in the table center during and after the reveal phase. */
+    drawMachineTrack() {
+        const ctx = this.ctx;
+        const { tblL, tblR, tblT, tblB } = this;
+        const centerY = (tblT + tblB) / 2;
+        const trackW = Math.min(340, (tblR - tblL) * 0.55);
+        const trackX = tblL + (tblR - tblL) / 2 - trackW / 2;
+        const trackH = 8;
+        // Smooth lerp
+        this.displayedMachinePos += (this.game.machinePosition - this.displayedMachinePos) * 0.06;
+        // Track
+        ctx.fillStyle = '#151515';
+        ctx.fillRect(trackX, centerY - trackH / 2, trackW, trackH);
+        ctx.strokeStyle = '#2e2e2e';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(trackX, centerY - trackH / 2, trackW, trackH);
+        // Notch marks
+        ctx.strokeStyle = '#2a2a2a';
+        for (let i = 0; i <= 12; i++) {
+            const nx = trackX + (i / 12) * trackW;
+            ctx.beginPath();
+            ctx.moveTo(nx, centerY - 9);
+            ctx.lineTo(nx, centerY + 9);
             ctx.stroke();
         }
-        const pos = this.game.machinePosition;
-        const indicatorX = trackX + (pos / 12) * trackWidth;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#00ff00';
+        // Glowing indicator
+        const ix = trackX + (this.displayedMachinePos / 12) * trackW;
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = '#0f0';
         ctx.fillStyle = '#0f0';
         ctx.beginPath();
-        ctx.arc(indicatorX, centerY, 8, 0, Math.PI * 2);
+        ctx.arc(ix, centerY, 7, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = '#555';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(indicatorX, centerY - 20);
-        ctx.lineTo(indicatorX, 0);
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.font = '10px Courier';
+        // "THE MACHINE" label
+        ctx.font = '9px Courier';
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('THE MACHINE', this.canvas.width / 2, centerY - 22);
-        const distP1 = pos;
-        const distP2 = 12 - pos;
-        ctx.fillStyle = '#aaa';
-        ctx.font = '12px Courier';
-        ctx.textAlign = 'left';
-        ctx.fillText(`← ${distP1} from ${this.game.players[0].name}`, trackX, centerY - 32);
-        ctx.textAlign = 'right';
-        ctx.fillText(`${distP2} from ${this.game.players[1].name} →`, trackX + trackWidth, centerY - 32);
-    }
-    drawControls() {
-        const ctx = this.ctx;
-        const x = 20;
-        const bottomY = this.canvas.height - 20;
-        ctx.textAlign = 'left';
-        ctx.font = '14px Courier';
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillRect(x - 10, bottomY - 95, 235, 100);
-        ctx.fillStyle = '#fff';
         ctx.textBaseline = 'alphabetic';
-        ctx.fillText('[L-Click]  Draw Card', x, bottomY - 65);
-        ctx.fillText('[R-Click]  Stay', x, bottomY - 40);
-        ctx.fillText('[Space]    Abilities', x, bottomY - 15);
+        ctx.fillText('THE MACHINE', tblL + (tblR - tblL) / 2, centerY - 14);
     }
     drawTimer() {
-        const remaining = this.game.getTurnTimeRemaining();
-        if (remaining <= 0)
+        const rem = this.game.getTurnTimeRemaining();
+        if (rem <= 0)
             return;
         const ctx = this.ctx;
-        ctx.fillStyle = remaining <= 10 ? '#ff4444' : '#ffffff';
-        ctx.font = 'bold 24px Courier';
+        ctx.fillStyle = rem <= 10 ? '#ff4444' : '#fff';
+        ctx.font = 'bold 22px Courier';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText(`⏱ ${remaining}s`, this.canvas.width / 2, 10);
+        ctx.fillText(`⏱ ${rem}s`, this.canvas.width / 2, 10);
     }
     drawStatusMessage() {
         const ctx = this.ctx;
-        const game = this.game;
+        const { game, localPlayerIndex } = this;
+        if (game.revealPhase !== 'playing' && game.revealPhase !== 'round-over')
+            return;
+        const isLocalTurn = game.currentPlayerIndex === localPlayerIndex;
         let msg = '';
-        const isLocalTurn = game.currentPlayerIndex === this.localPlayerIndex;
-        if (game.gameOver) {
+        if (game.gameOver)
             msg = `✓ Game Over! ${game.winner?.name ?? '?'} wins!`;
-        }
-        else if (game.mustDraw && isLocalTurn) {
+        else if (game.mustDraw && isLocalTurn)
             msg = '⚠ Timer expired — you must draw a card!';
-        }
-        else if (game.mustStay && isLocalTurn) {
+        else if (game.mustStay && isLocalTurn)
             msg = '💥 Busted! Right-click to Stay.';
-        }
-        else if (isLocalTurn) {
+        else if (isLocalTurn)
             msg = '▶ Your turn — L-click Draw, R-click Stay';
-        }
-        else {
-            const opp = game.players[1 - this.localPlayerIndex];
-            msg = `⏳ ${opp.name}'s turn…`;
-        }
-        ctx.font = '15px Courier';
+        else
+            msg = `⏳ ${game.players[1 - localPlayerIndex].name}'s turn…`;
+        ctx.font = '14px Courier';
         ctx.textBaseline = 'top';
         ctx.textAlign = 'center';
-        const msgW = ctx.measureText(msg).width + 30;
-        ctx.fillStyle = 'rgba(0,0,0,0.65)';
-        ctx.fillRect(this.canvas.width / 2 - msgW / 2, 40, msgW, 28);
+        const mw = ctx.measureText(msg).width + 28;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(this.canvas.width / 2 - mw / 2, 38, mw, 26);
         ctx.fillStyle = '#fff';
-        ctx.fillText(msg, this.canvas.width / 2, 48);
+        ctx.fillText(msg, this.canvas.width / 2, 44);
     }
+    drawRoundInfo() {
+        const ctx = this.ctx;
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '11px Courier';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`ROUND ${this.game.roundNumber}  TARGET ${this.game.targetNumber}  MOVE ${this.game.moveDistance}`, this.canvas.width - 12, 10);
+    }
+    drawControls() {
+        const ctx = this.ctx;
+        const x = this.tblL + 10;
+        const y = this.tblB + 10;
+        ctx.font = '12px Courier';
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('[L-Click] Draw   [R-Click] Stay   [Space] Abilities', x, y);
+    }
+    /** Center overlay shown during the both-stayed / reveal / machine-move sequence. */
+    drawRevealOverlay() {
+        const phase = this.game.revealPhase;
+        if (phase === 'playing' || phase === 'round-over')
+            return;
+        const msgs = {
+            'both-stayed': 'Both players have stayed — cards are about to be revealed',
+            'revealing': 'Revealing hidden cards…',
+            'machine-moving': 'The machine moves…',
+        };
+        const msg = msgs[phase];
+        if (!msg)
+            return;
+        const ctx = this.ctx;
+        const W = this.canvas.width, H = this.canvas.height;
+        // Dim overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.78)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.font = 'bold 26px Courier';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const mw = ctx.measureText(msg).width + 60;
+        ctx.fillStyle = '#111';
+        ctx.fillRect(W / 2 - mw / 2, H / 2 - 36, mw, 72);
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(W / 2 - mw / 2, H / 2 - 36, mw, 72);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(msg, W / 2, H / 2);
+        // Pulsing ellipsis
+        const dots = '.'.repeat((Math.floor(Date.now() / 500) % 4));
+        ctx.font = '18px Courier';
+        ctx.fillStyle = '#666';
+        ctx.fillText(dots, W / 2, H / 2 + 26);
+        // If machine is moving, show the track in the overlay
+        if (phase === 'machine-moving') {
+            this.drawMachineTrack();
+        }
+    }
+    /** Centre-screen flash when an ability card is played. */
+    updateAndDrawAbilityFlash() {
+        const lap = this.game.lastAbilityPlayed;
+        if (lap) {
+            const key = `${lap.player.name}:${lap.ability}`;
+            if (key !== this.lastSeenAbilityKey) {
+                this.lastSeenAbilityKey = key;
+                this.abilityFlashText = `${lap.player.name} used: ${lap.ability}`;
+                this.abilityFlashEnd = Date.now() + 2500;
+            }
+        }
+        if (!this.abilityFlashText || Date.now() > this.abilityFlashEnd)
+            return;
+        const alpha = Math.min(1, (this.abilityFlashEnd - Date.now()) / 500);
+        const ctx = this.ctx;
+        const cx = this.canvas.width / 2;
+        const cy = this.tblT + (this.tblB - this.tblT) / 2;
+        ctx.font = 'bold 20px Courier';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const fw = ctx.measureText(this.abilityFlashText).width + 40;
+        ctx.fillStyle = `rgba(0,0,0,${alpha * 0.9})`;
+        ctx.fillRect(cx - fw / 2, cy - 26, fw, 52);
+        ctx.strokeStyle = `rgba(255,200,0,${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - fw / 2, cy - 26, fw, 52);
+        ctx.fillStyle = `rgba(255,200,0,${alpha})`;
+        ctx.fillText(this.abilityFlashText, cx, cy);
+    }
+    /** Right-side ability sidebar (Space bar). */
     drawAbilityMenu() {
         if (!this.showAbilityMenu)
             return;
         const ctx = this.ctx;
-        const sidebarW = 300;
-        const x = this.canvas.width - sidebarW;
+        const sw = 300;
+        const sx = this.canvas.width - sw;
         const player = this.game.players[this.localPlayerIndex];
-        ctx.fillStyle = 'rgba(8,8,8,0.95)';
-        ctx.fillRect(x, 0, sidebarW, this.canvas.height);
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
+        ctx.fillStyle = 'rgba(8,8,8,0.97)';
+        ctx.fillRect(sx, 0, sw, this.canvas.height);
+        ctx.strokeStyle = '#2a2a2a';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, this.canvas.height);
+        ctx.moveTo(sx, 0);
+        ctx.lineTo(sx, this.canvas.height);
         ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 22px Courier';
+        ctx.fillStyle = '#eee';
+        ctx.font = 'bold 20px Courier';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('TRUMP CARDS', x + sidebarW / 2, 50);
+        ctx.fillText('TRUMP CARDS', sx + sw / 2, 46);
+        if (player.abilityHand.length === 0) {
+            ctx.fillStyle = '#444';
+            ctx.font = '13px Courier';
+            ctx.fillText('No abilities', sx + sw / 2, 160);
+        }
         player.abilityHand.forEach((ability, i) => {
-            const b = this.getAbilityCardBounds(i);
-            const isHovered = i === this.hoveredAbilityIndex;
-            ctx.fillStyle = isHovered ? 'rgba(255,200,0,0.15)' : 'rgba(30,30,30,0.9)';
+            const b = this.abilityCardBounds(i);
+            const hov = i === this.hoveredAbilityIndex;
+            ctx.fillStyle = hov ? 'rgba(255,200,0,0.1)' : '#111';
             ctx.fillRect(b.x, b.y, b.w, b.h);
-            ctx.strokeStyle = isHovered ? '#ffc107' : '#555';
-            ctx.lineWidth = isHovered ? 2 : 1;
+            ctx.strokeStyle = hov ? '#ffc107' : '#2a2a2a';
+            ctx.lineWidth = hov ? 1.5 : 1;
             ctx.strokeRect(b.x, b.y, b.w, b.h);
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 14px Courier';
+            ctx.font = 'bold 13px Courier';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
-            ctx.fillText(ability.name, b.x + 15, b.y + 10);
-            ctx.fillStyle = '#aaa';
-            ctx.font = '11px Courier';
-            ctx.fillText(`[${ability.category}]`, b.x + 15, b.y + 28);
+            ctx.fillText(ability.name, b.x + 14, b.y + 9);
             ctx.fillStyle = '#666';
-            ctx.fillText('Click to use', b.x + 15, b.y + 46);
+            ctx.font = '11px Courier';
+            ctx.fillText(`[${ability.category}]`, b.x + 14, b.y + 27);
+            ctx.fillStyle = '#444';
+            ctx.fillText('Click to use', b.x + 14, b.y + 45);
         });
-        if (player.abilityHand.length === 0) {
-            ctx.fillStyle = '#555';
-            ctx.font = '14px Courier';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('No abilities', x + sidebarW / 2, 160);
-        }
-        if (this.tooltipAbility) {
+        if (this.tooltipAbility)
             this.drawTooltip(this.tooltipAbility, this.tooltipX, this.tooltipY);
-        }
     }
     drawTooltip(ability, mx, my) {
         const ctx = this.ctx;
-        const maxW = 240;
-        const padding = 12;
-        const lineHeight = 18;
+        const maxW = 230, pad = 12, lh = 17;
         ctx.font = '12px Courier';
         const words = ability.description.split(' ');
         const lines = [];
         let line = '';
-        for (const word of words) {
-            const test = line ? `${line} ${word}` : word;
-            if (ctx.measureText(test).width > maxW - padding * 2) {
+        for (const w of words) {
+            const t = line ? `${line} ${w}` : w;
+            if (ctx.measureText(t).width > maxW - pad * 2) {
                 if (line)
                     lines.push(line);
-                line = word;
+                line = w;
             }
-            else {
-                line = test;
-            }
+            else
+                line = t;
         }
         if (line)
             lines.push(line);
-        const tooltipH = padding * 2 + 20 + lines.length * lineHeight;
-        let tx = mx - maxW - 10;
+        const th = pad * 2 + 18 + lines.length * lh;
+        let tx = mx - maxW - 8;
         if (tx < 5)
-            tx = mx + 10;
-        let ty = my - tooltipH / 2;
+            tx = mx + 8;
+        let ty = my - th / 2;
         if (ty < 5)
             ty = 5;
-        if (ty + tooltipH > this.canvas.height - 5)
-            ty = this.canvas.height - tooltipH - 5;
-        ctx.fillStyle = 'rgba(15,15,15,0.97)';
-        ctx.fillRect(tx, ty, maxW, tooltipH);
+        if (ty + th > this.canvas.height - 5)
+            ty = this.canvas.height - th - 5;
+        ctx.fillStyle = 'rgba(10,10,10,0.97)';
+        ctx.fillRect(tx, ty, maxW, th);
         ctx.strokeStyle = '#ffc107';
         ctx.lineWidth = 1;
-        ctx.strokeRect(tx, ty, maxW, tooltipH);
+        ctx.strokeRect(tx, ty, maxW, th);
         ctx.fillStyle = '#ffc107';
-        ctx.font = 'bold 13px Courier';
+        ctx.font = 'bold 12px Courier';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText(ability.name, tx + padding, ty + padding);
-        ctx.fillStyle = '#ccc';
+        ctx.fillText(ability.name, tx + pad, ty + pad);
+        ctx.fillStyle = '#bbb';
         ctx.font = '12px Courier';
-        lines.forEach((l, i) => {
-            ctx.fillText(l, tx + padding, ty + padding + 20 + i * lineHeight);
-        });
+        lines.forEach((l, i) => ctx.fillText(l, tx + pad, ty + pad + 18 + i * lh));
     }
-    drawRoundInfo() {
-        const ctx = this.ctx;
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
-        ctx.font = '12px Courier';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`Round: ${this.game.roundNumber}  Move Dist: ${this.game.moveDistance}`, this.canvas.width - 12, 10);
-    }
-    // ─── Main draw call ────────────────────────────────────────────────────────
+    // ── Main render ─────────────────────────────────────────────────────────────
     draw() {
         const ctx = this.ctx;
         const W = this.canvas.width;
         const H = this.canvas.height;
-        const cx = W / 2;
-        // 1. Dark background (RE7 style: near-black)
+        // ── Layout constants ──────────────────────────────────────────────────────
+        const BOX_W = 165; // left machine-box column width
+        this.tblL = BOX_W + 8;
+        this.tblR = W - 15;
+        this.tblT = H * 0.06;
+        this.tblB = H * 0.91;
+        const { tblL, tblR, tblT, tblB } = this;
+        const tblCx = tblL + (tblR - tblL) / 2;
+        // 1. Dark background (no green anywhere)
         ctx.fillStyle = '#0d0d0d';
         ctx.fillRect(0, 0, W, H);
-        // 2. Green felt table in the lower half
-        this.drawTable();
-        // 3. Machine track — revealed only when game is over
-        const machineVisible = this.game.gameOver;
-        this.drawMachine(H * 0.35, machineVisible);
-        // 4. Opponent area (upper half, above the table)
+        // 2. Table surface with dashed center divider
+        this.drawTableSurface();
+        // ── Opponent zone (top half of table) ─────────────────────────────────────
         const opponentIndex = 1 - this.localPlayerIndex;
-        const opponentCardsY = H * 0.18;
-        this.drawPlayerCards(opponentIndex, opponentCardsY, false);
-        // Opponent name label
-        ctx.fillStyle = '#aaa';
-        ctx.font = '13px Courier';
+        const oppNameY = tblT + 18;
+        const oppCardsY = tblT + 34;
+        ctx.fillStyle = '#777';
+        ctx.font = '11px Courier';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
-        ctx.fillText(this.game.players[opponentIndex].name, cx, opponentCardsY - 14);
-        // Opponent score — near opponent cards, left-aligned (RE7: "?+6/21")
-        this.drawScore(opponentIndex, cx - 180, opponentCardsY - 50, false);
-        // 5. Local player cards — placed ON the table
-        const localCardsY = H * 0.60;
+        ctx.fillText(this.game.players[opponentIndex].name.toUpperCase(), tblCx, oppNameY);
+        this.drawPlayerCards(opponentIndex, oppCardsY, false);
+        this.drawScore(opponentIndex, tblL + 14, tblT + 170, false);
+        // ── Local player zone (bottom half of table) ──────────────────────────────
+        const localCardsY = tblB - 148;
+        ctx.fillStyle = '#ccc';
+        ctx.font = '11px Courier';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(this.game.players[this.localPlayerIndex].name.toUpperCase(), tblCx, localCardsY - 10);
         this.drawPlayerCards(this.localPlayerIndex, localCardsY, true);
-        // Local player name label — above cards
-        ctx.fillStyle = '#eee';
-        ctx.font = '13px Courier';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillText(this.game.players[this.localPlayerIndex].name, cx, localCardsY - 10);
-        // Local player score — large bottom-left, RE7 style ("11/21")
-        this.drawScore(this.localPlayerIndex, 20, H - 120, true);
-        // 6. HUD overlay
+        // Large score bottom-left of table (RE7 style)
+        this.drawScore(this.localPlayerIndex, tblL + 14, tblB - 28, true);
+        // 3. Machine track – always in the table centre; smooth lerp indicator
+        this.drawMachineTrack();
+        // 4. Left machine-distance box (always visible)
+        this.drawMachineBox();
+        // 5. HUD overlays
         this.drawRoundInfo();
         this.drawTimer();
         this.drawStatusMessage();
         this.drawControls();
+        // 6. Ability usage flash
+        this.updateAndDrawAbilityFlash();
+        // 7. Reveal-sequence overlay (dims screen + message)
+        this.drawRevealOverlay();
+        // 8. Ability sidebar (Space key)
         this.drawAbilityMenu();
     }
 }

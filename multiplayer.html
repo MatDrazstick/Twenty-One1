@@ -18,582 +18,647 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            overflow: hidden;
         }
 
-        /* ── Shared layout ── */
+        /* ── Lobby screens ── */
         .screen {
             width: 100%;
-            max-width: 860px;
+            max-width: 480px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 16px;
         }
-
         h1 {
-            font-size: clamp(1.8rem, 5vw, 3rem);
+            font-size: clamp(1.8rem, 5vw, 2.8rem);
             letter-spacing: 0.15em;
             color: #e0e0e0;
-            text-shadow: 0 0 30px rgba(0,200,0,0.3);
-            margin-bottom: 4px;
         }
-
-        .subtitle {
-            font-size: 0.8rem;
-            color: #555;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-
-        .divider {
-            width: 200px;
-            height: 1px;
-            background: linear-gradient(to right, transparent, #3a5a3e, transparent);
-        }
-
-        /* ── Panels ── */
-        .panel {
-            background: #0d0d0d;
-            border: 1px solid #2a3a2e;
-            padding: 24px 28px;
-            width: 100%;
-        }
-
-        .panel-title {
-            font-size: 0.75rem;
-            color: #555;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            margin-bottom: 14px;
-        }
-
-        /* ── Form elements ── */
-        .form-row {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            width: 100%;
-        }
-
-        label {
-            font-size: 0.75rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
+        .subtitle { font-size: 0.78rem; color: #555; letter-spacing: 0.12em; text-transform: uppercase; }
+        .divider { width: 200px; height: 1px; background: linear-gradient(to right, transparent, #333, transparent); }
+        .panel { background: #0d0d0d; border: 1px solid #222; padding: 22px 24px; width: 100%; }
+        .form-row { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+        label { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 0.08em; }
         input[type="text"] {
-            background: #0a0a0a;
-            border: 1px solid #2a3a2e;
-            color: #eee;
-            font-family: inherit;
-            font-size: 1rem;
-            padding: 10px 14px;
-            outline: none;
-            width: 100%;
+            background: #0a0a0a; border: 1px solid #222; color: #eee;
+            font-family: inherit; font-size: 0.95rem; padding: 9px 12px; outline: none; width: 100%;
             transition: border-color 0.2s;
         }
-        input[type="text"]:focus { border-color: #0f0; }
-
-        /* ── Buttons ── */
+        input[type="text"]:focus { border-color: #555; }
         .btn {
-            background: transparent;
-            border: 2px solid #3a5a3e;
-            color: #ddd;
-            font-family: inherit;
-            font-size: 1rem;
-            letter-spacing: 0.08em;
-            padding: 14px 0;
-            cursor: pointer;
-            width: 100%;
+            background: transparent; border: 1px solid #333; color: #ccc;
+            font-family: inherit; font-size: 0.95rem; letter-spacing: 0.06em;
+            padding: 13px 0; cursor: pointer; width: 100%;
             transition: background 0.2s, border-color 0.2s, color 0.2s;
         }
-        .btn:hover:not(:disabled) {
-            background: rgba(0,200,0,0.08);
-            border-color: #0f0;
-            color: #fff;
+        .btn:hover:not(:disabled) { background: rgba(255,255,255,0.04); border-color: #666; color: #fff; }
+        .btn:disabled { border-color: #1a1a1a; color: #333; cursor: not-allowed; }
+        .status-box {
+            width: 100%; padding: 13px 16px; font-size: 0.9rem;
+            border-left: 2px solid #444; background: #080808; color: #aaa;
         }
-        .btn:disabled {
-            border-color: #1a2a1e;
-            color: #333;
-            cursor: not-allowed;
-        }
-        .btn.secondary {
-            border-color: #1e2e22;
-            color: #555;
-            font-size: 0.85rem;
-        }
-        .btn.secondary:hover:not(:disabled) {
-            border-color: #888;
-            color: #aaa;
-        }
-        .btn-row {
-            display: flex;
-            gap: 12px;
-            width: 100%;
-        }
-
-        /* ── Status messages ── */
-        .status {
-            width: 100%;
-            padding: 14px 18px;
-            font-size: 0.95rem;
-            border-left: 3px solid #3a5a3e;
-            background: #060f07;
-            color: #aaa;
-        }
-        .status.info    { border-color: #3a7a6a; color: #8ecfbe; }
-        .status.warn    { border-color: #7a6a3a; color: #cfbe8e; }
-        .status.success { border-color: #3a7a3e; color: #8ecf8e; }
-        .status.error   { border-color: #7a3a3a; color: #cf8e8e; }
-
-        /* ── Room code display ── */
-        .room-code {
-            font-size: 2.4rem;
-            letter-spacing: 0.25em;
-            color: #0f0;
-            text-shadow: 0 0 18px rgba(0,255,0,0.35);
-            text-align: center;
-            margin: 8px 0;
-        }
-
-        /* ── Game area ── */
-        .game-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px 24px;
-            font-size: 0.8rem;
-            color: #555;
-        }
-        .game-meta span { color: #aaa; }
-
-        .player-area {
-            border: 1px solid #1e2e22;
-            background: #070d08;
-            padding: 16px 20px;
-            width: 100%;
-        }
-        .player-area h3 {
-            font-size: 0.85rem;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 10px;
-        }
-        .player-score {
-            font-size: 2rem;
-            font-style: italic;
-            color: #fff;
-            font-family: 'Times New Roman', serif;
-            margin-bottom: 10px;
-        }
-        .opponent-score {
-            font-size: 1.4rem;
-            font-style: italic;
-            color: #ccc;
-            font-family: 'Times New Roman', serif;
-            margin-bottom: 10px;
-        }
-
-        /* ── Card hand (DOM cards) ── */
-        .hand {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-        .card {
-            width: 64px;
-            height: 96px;
-            border: 1px solid #333;
-            background: #e3e3e3;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Times New Roman', serif;
-            font-weight: bold;
-            font-size: 1.8rem;
-            color: #000;
-            position: relative;
-        }
-        .card.face-down {
-            background: #1a1a1a;
-            color: #555;
-            font-size: 1.4rem;
-        }
-
-        /* ── Abilities ── */
-        .abilities {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .ability-card {
-            background: #0d1a0d;
-            border: 1px solid #3a5a2a;
-            padding: 10px 14px;
-            cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
-            font-size: 0.85rem;
-        }
-        .ability-card:hover:not(.disabled) {
-            background: #1a2e1a;
-            border-color: #0f0;
-        }
-        .ability-card.disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-        .ability-card strong { color: #bfef9f; }
-        .ability-card p { color: #666; margin-top: 3px; font-size: 0.78rem; }
-
-        /* ── Machine track ── */
-        .machine-section {
-            width: 100%;
-            padding: 14px 20px;
-            background: #080808;
-            border: 1px solid #1e2e22;
-        }
-        .machine-label {
-            font-size: 0.75rem;
-            color: #555;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 10px;
-        }
-        .machine-track-wrap {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 0.8rem;
-            color: #666;
-        }
-        .machine-track {
-            flex: 1;
-            height: 8px;
-            background: #111;
-            border: 1px solid #2a2a2a;
-            position: relative;
-        }
-        .machine-indicator {
-            position: absolute;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #0f0;
-            box-shadow: 0 0 10px #0f0, 0 0 20px rgba(0,255,0,0.4);
-            transition: left 0.4s ease;
-        }
-
-        /* ── Controls ── */
-        .game-controls {
-            display: flex;
-            gap: 12px;
-            width: 100%;
-        }
-
-        /* ── Misc ── */
+        .room-code { font-size: 2.2rem; letter-spacing: 0.25em; color: #fff; text-align: center; margin: 6px 0; }
+        .back-link { font-size: 0.78rem; color: #333; text-decoration: none; transition: color 0.2s; }
+        .back-link:hover { color: #777; }
         .hidden { display: none !important; }
 
-        .back-link {
-            font-size: 0.8rem;
-            color: #333;
-            text-decoration: none;
-            letter-spacing: 0.06em;
-            transition: color 0.2s;
-        }
-        .back-link:hover { color: #888; }
-
-        .opp-ability-count {
-            font-size: 0.8rem;
-            color: #444;
-            margin-top: 4px;
+        /* ── Game canvas ── */
+        #gameCanvas {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            cursor: crosshair;
         }
     </style>
 </head>
 <body>
 
-    <!-- ══ Main Menu ══════════════════════════════════════════════════════ -->
-    <div id="menu" class="screen">
-        <h1>TWENTY-ONE</h1>
-        <p class="subtitle">Online Multiplayer</p>
-        <div class="divider"></div>
-
-        <div class="panel" style="max-width:360px">
-            <div class="form-row">
-                <label for="playerName">Your Name</label>
-                <input type="text" id="playerName" placeholder="Enter name" maxlength="20" value="Player">
-            </div>
-        </div>
-
-        <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px">
-            <button id="createRoomBtn" class="btn">▶ Create Room</button>
-
-            <p class="subtitle" style="text-align:center">— or —</p>
-
-            <div class="panel" style="gap:10px;display:flex;flex-direction:column">
+    <!-- ══ Lobby ══════════════════════════════════════════════════════════ -->
+    <div id="lobby">
+        <!-- Main Menu -->
+        <div id="menu" class="screen">
+            <h1>TWENTY-ONE</h1>
+            <p class="subtitle">Online Multiplayer</p>
+            <div class="divider"></div>
+            <div class="panel">
                 <div class="form-row">
-                    <label for="roomCode">Room Code</label>
-                    <input type="text" id="roomCode" placeholder="Enter room code" maxlength="8">
+                    <label for="playerName">Your Name</label>
+                    <input type="text" id="playerName" placeholder="Enter name" maxlength="20" value="Player">
                 </div>
-                <button id="joinRoomBtn" class="btn">⚡ Join Room</button>
             </div>
-        </div>
-
-        <a href="index.html" class="back-link">← Back to main menu</a>
-    </div>
-
-    <!-- ══ Waiting Room ═══════════════════════════════════════════════════ -->
-    <div id="waitingRoom" class="screen hidden">
-        <h1>TWENTY-ONE</h1>
-        <div class="divider"></div>
-        <div class="status info">Room created. Share this code with your opponent:</div>
-        <div class="room-code" id="displayRoomCode"></div>
-        <div class="status">Waiting for opponent to join…</div>
-    </div>
-
-    <!-- ══ Game Area ══════════════════════════════════════════════════════ -->
-    <div id="gameArea" class="screen hidden">
-
-        <!-- Meta info -->
-        <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
-            <h1 style="font-size:1.4rem">TWENTY-ONE</h1>
-            <div class="game-meta">
-                <div>ROOM <span id="gameRoomCode"></span></div>
-                <div>ROUND <span id="roundNumber">1</span></div>
-                <div>TARGET <span id="targetNumber">21</span></div>
-                <div>MOVE DIST <span id="moveDistance">1</span></div>
-            </div>
-        </div>
-        <div class="divider" style="width:100%;max-width:100%"></div>
-
-        <!-- Machine track -->
-        <div class="machine-section">
-            <div class="machine-label">THE MACHINE — Position <span id="machinePosition">6</span>/12</div>
-            <div class="machine-track-wrap">
-                <span id="p1Label">You</span>
-                <div class="machine-track" id="machineTrack">
-                    <div class="machine-indicator" id="machineIndicator" style="left:50%"></div>
+            <div style="width:100%;display:flex;flex-direction:column;gap:10px">
+                <button id="createRoomBtn" class="btn">▶ Create Room</button>
+                <p class="subtitle" style="text-align:center">— or —</p>
+                <div class="panel" style="gap:10px;display:flex;flex-direction:column">
+                    <div class="form-row">
+                        <label for="roomCode">Room Code</label>
+                        <input type="text" id="roomCode" placeholder="Enter room code" maxlength="8">
+                    </div>
+                    <button id="joinRoomBtn" class="btn">⚡ Join Room</button>
                 </div>
-                <span id="p2Label">Opponent</span>
             </div>
+            <a href="index.html" class="back-link">← Back to main menu</a>
         </div>
 
-        <!-- Turn status -->
-        <div class="status info" id="turnStatus">Waiting for game to start…</div>
-
-        <!-- Opponent area -->
-        <div class="player-area">
-            <h3>Opponent</h3>
-            <div class="opponent-score" id="opponentScore">?+0/21</div>
-            <div class="hand" id="opponentHand"></div>
-            <div class="opp-ability-count">Trump cards held: <span id="opponentAbilityCount">0</span></div>
-        </div>
-
-        <!-- Your area -->
-        <div class="player-area">
-            <h3>Your Hand</h3>
-            <div class="player-score" id="yourScore">0/21</div>
-            <div class="hand" id="yourHand"></div>
-            <div class="abilities" id="yourAbilities"></div>
-        </div>
-
-        <!-- Controls -->
-        <div class="game-controls">
-            <button id="drawBtn" class="btn" disabled>Draw Card</button>
-            <button id="stayBtn" class="btn" disabled>Stay</button>
+        <!-- Waiting Room -->
+        <div id="waitingRoom" class="screen hidden">
+            <h1>TWENTY-ONE</h1>
+            <div class="divider"></div>
+            <div class="status-box">Room created. Share this code:</div>
+            <div class="room-code" id="displayRoomCode"></div>
+            <div class="status-box">Waiting for opponent to join…</div>
         </div>
     </div>
+
+    <!-- ══ Game Canvas ════════════════════════════════════════════════════ -->
+    <canvas id="gameCanvas" class="hidden"></canvas>
 
     <script>
-        const socket = io();
-        let currentRoom = null;
-        let isHost = false;
+    // ═════════════════════════════════════════════════════════════════════════
+    //  MultiplayerRenderer – mirrors GameUI.ts but works from plain state objects
+    // ═════════════════════════════════════════════════════════════════════════
+    class MultiplayerRenderer {
+        constructor(canvas) {
+            this.canvas  = canvas;
+            this.ctx     = canvas.getContext('2d');
+            this.state   = null;      // latest game-state from server
+            this.abilities = [];      // your ability hand from latest state
 
-        // DOM
-        const menu           = document.getElementById('menu');
-        const waitingRoom    = document.getElementById('waitingRoom');
-        const gameArea       = document.getElementById('gameArea');
-        const playerNameInput= document.getElementById('playerName');
-        const roomCodeInput  = document.getElementById('roomCode');
-        const createRoomBtn  = document.getElementById('createRoomBtn');
-        const joinRoomBtn    = document.getElementById('joinRoomBtn');
-        const displayRoomCode= document.getElementById('displayRoomCode');
-        const gameRoomCode   = document.getElementById('gameRoomCode');
-        const drawBtn        = document.getElementById('drawBtn');
-        const stayBtn        = document.getElementById('stayBtn');
-        const turnStatus     = document.getElementById('turnStatus');
-        const machineIndicator = document.getElementById('machineIndicator');
+            // Ability sidebar
+            this.showAbilityMenu  = false;
+            this.hoveredAbility   = -1;
+            this.tooltipAbility   = null;
+            this.tooltipX = 0;
+            this.tooltipY = 0;
 
-        // ── Actions ──────────────────────────────────────────────────────
-        createRoomBtn.addEventListener('click', () => {
-            const playerName = playerNameInput.value.trim() || 'Player 1';
-            socket.emit('create-room', { playerName });
-            isHost = true;
-        });
+            // Ability flash
+            this.abilityFlashText  = '';
+            this.abilityFlashEnd   = 0;
+            this.lastAbilityKey    = '';
 
-        joinRoomBtn.addEventListener('click', () => {
-            const roomCode  = roomCodeInput.value.trim().toUpperCase();
-            const playerName= playerNameInput.value.trim() || 'Player 2';
-            if (!roomCode) { alert('Please enter a room code'); return; }
-            socket.emit('join-room', { roomCode, playerName });
-            isHost = false;
-        });
+            // Machine indicator lerp
+            this.displayedMachinePos = 6;
 
-        drawBtn.addEventListener('click', () => { socket.emit('player-draw'); });
-        stayBtn.addEventListener('click', () => { socket.emit('player-stay'); });
+            // Callbacks wired from outside
+            this.onDraw     = null;
+            this.onStay     = null;
+            this.onAbility  = null;   // called with (index)
 
-        // ── Socket events ─────────────────────────────────────────────────
-        socket.on('room-created', (data) => {
-            currentRoom = data.roomCode;
-            displayRoomCode.textContent = data.roomCode;
-            gameRoomCode.textContent    = data.roomCode;
-            menu.classList.add('hidden');
-            waitingRoom.classList.remove('hidden');
-        });
+            // Layout bounds (updated each frame)
+            this.tblL = 0; this.tblR = 0; this.tblT = 0; this.tblB = 0;
 
-        socket.on('room-joined', (data) => {
-            currentRoom = data.roomCode;
-            gameRoomCode.textContent = data.roomCode;
-            menu.classList.add('hidden');
-        });
+            this._boundResize = () => this.resize();
+            window.addEventListener('resize', this._boundResize);
+            this.resize();
+            this._setupInput();
+            this._startLoop();
+        }
 
-        socket.on('game-start', (data) => {
-            waitingRoom.classList.add('hidden');
-            gameArea.classList.remove('hidden');
-            updateGameState(data.gameState);
-        });
+        resize() {
+            this.canvas.width  = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+        }
 
-        socket.on('game-state', (state) => { updateGameState(state); });
-
-        socket.on('error', (data) => { alert(data.message); });
-
-        socket.on('opponent-disconnected', () => {
-            setStatus('Opponent disconnected. Waiting for reconnection…', 'warn');
-            drawBtn.disabled = true;
-            stayBtn.disabled = true;
-        });
-
-        socket.on('opponent-reconnected', () => {
-            setStatus('Opponent reconnected!', 'success');
-        });
-
-        socket.on('reconnected', (data) => {
-            currentRoom = data.roomCode;
-            gameRoomCode.textContent = data.roomCode;
-            menu.classList.add('hidden');
-            waitingRoom.classList.add('hidden');
-            gameArea.classList.remove('hidden');
-        });
-
-        // ── Update state ───────────────────────────────────────────────────
-        function updateGameState(state) {
-            document.getElementById('roundNumber').textContent   = state.roundNumber;
-            document.getElementById('targetNumber').textContent  = state.targetNumber;
-            document.getElementById('moveDistance').textContent  = state.moveDistance;
-            document.getElementById('machinePosition').textContent = state.machinePosition;
-
-            // Machine indicator position (0–12 → 0%–100%)
-            const pct = (state.machinePosition / 12) * 100;
-            machineIndicator.style.left = pct + '%';
-
-            // Your hand
-            const yourHandEl = document.getElementById('yourHand');
-            yourHandEl.innerHTML = '';
-            state.yourHand.forEach(card => yourHandEl.appendChild(createCardEl(card, true)));
-            document.getElementById('yourScore').textContent =
-                state.yourScore + '/21';
-
-            // Opponent hand (only visible cards)
-            const oppHandEl = document.getElementById('opponentHand');
-            oppHandEl.innerHTML = '';
-            state.opponentHand.forEach(card => oppHandEl.appendChild(createCardEl(card, false)));
-            const oppVisible = state.opponentVisibleScore;
-            const oppHasFaceDown = state.opponentHand.some(c => !c.faceup);
-            document.getElementById('opponentScore').textContent =
-                oppHasFaceDown ? `?+${oppVisible}/21` : `${oppVisible}/21`;
-            document.getElementById('opponentAbilityCount').textContent = state.opponentAbilityCount;
-
-            // Abilities
-            const abilitiesEl = document.getElementById('yourAbilities');
-            abilitiesEl.innerHTML = '';
-            state.yourAbilities.forEach((ability, index) => {
-                const el = document.createElement('div');
-                el.className = 'ability-card' + (state.isYourTurn && !state.gameOver ? '' : ' disabled');
-                el.innerHTML = `<strong>${ability.name}</strong><p>[${ability.category}] ${ability.description}</p>`;
-                if (state.isYourTurn && !state.gameOver) {
-                    el.addEventListener('click', () => socket.emit('use-ability', { abilityIndex: index }));
-                }
-                abilitiesEl.appendChild(el);
+        _setupInput() {
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') { e.preventDefault(); this.showAbilityMenu = !this.showAbilityMenu; }
             });
-
-            // Turn status & button state
-            if (state.gameOver) {
-                setStatus(`Game Over — Winner: ${state.winner}`, 'success');
-                drawBtn.disabled = true;
-                stayBtn.disabled = true;
-                localStorage.removeItem('twentyone-room');
-                localStorage.removeItem('twentyone-host');
-            } else if (state.isYourTurn) {
-                if (state.yourBusted) {
-                    setStatus('You busted! Click Stay to continue.', 'error');
-                    drawBtn.disabled = true;
-                    stayBtn.disabled = false;
-                } else if (state.mustDraw) {
-                    setStatus('Timer expired — you must draw a card!', 'warn');
-                    drawBtn.disabled = false;
-                    stayBtn.disabled = true;
-                } else if (state.yourStayed) {
-                    setStatus('You have stayed. Waiting for opponent…', 'info');
-                    drawBtn.disabled = true;
-                    stayBtn.disabled = true;
-                } else {
-                    setStatus('Your turn — Draw or Stay.', 'success');
-                    drawBtn.disabled = false;
-                    stayBtn.disabled = false;
+            this.canvas.addEventListener('click', (e) => {
+                if (this.showAbilityMenu) {
+                    const idx = this._hoveredAbilityIdx(e.clientX, e.clientY);
+                    if (idx >= 0) { this.onAbility?.(idx); return; }
                 }
+                this.onDraw?.();
+            });
+            this.canvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                this.onStay?.();
+            });
+            this.canvas.addEventListener('mousemove', (e) => {
+                if (this.showAbilityMenu) {
+                    const idx = this._hoveredAbilityIdx(e.clientX, e.clientY);
+                    this.hoveredAbility = idx;
+                    this.tooltipAbility = idx >= 0 ? (this.state?.yourAbilities?.[idx] ?? null) : null;
+                    this.tooltipX = e.clientX;
+                    this.tooltipY = e.clientY;
+                } else {
+                    this.hoveredAbility = -1;
+                    this.tooltipAbility = null;
+                }
+            });
+        }
+
+        _startLoop() {
+            const loop = () => { this.render(); requestAnimationFrame(loop); };
+            requestAnimationFrame(loop);
+        }
+
+        destroy() { window.removeEventListener('resize', this._boundResize); }
+
+        // ── Ability sidebar bounds ──────────────────────────────────────────
+        _abBounds(i) {
+            const sw = 300;
+            return { x: this.canvas.width - sw + 15, y: 100 + i * 85, w: sw - 30, h: 70 };
+        }
+        _hoveredAbilityIdx(mx, my) {
+            const list = this.state?.yourAbilities ?? [];
+            for (let i = 0; i < list.length; i++) {
+                const b = this._abBounds(i);
+                if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) return i;
+            }
+            return -1;
+        }
+
+        // ── Drawing primitives (mirror GameUI) ─────────────────────────────
+        _drawTableSurface() {
+            const { ctx, tblL, tblR, tblT, tblB } = this;
+            const w = tblR - tblL, h = tblB - tblT;
+            ctx.fillStyle = '#0f0f0f';
+            ctx.fillRect(tblL, tblT, w, h);
+            ctx.strokeStyle = '#2a2a2a';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(tblL, tblT, w, h);
+            const midY = tblT + h / 2;
+            ctx.strokeStyle = '#1e1e1e';
+            ctx.setLineDash([6, 8]);
+            ctx.beginPath(); ctx.moveTo(tblL + 20, midY); ctx.lineTo(tblR - 20, midY); ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        _drawCard(x, y, value, faceup, isOwner) {
+            const ctx = this.ctx;
+            const W = 80, H = 110;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.fillStyle = faceup ? '#e3e3e3' : (isOwner ? '#d4d4d4' : '#1a1a1a');
+            ctx.fillRect(x, y, W, H);
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, W, H);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (faceup) {
+                ctx.font = 'bold 40px "Times New Roman"';
+                ctx.fillStyle = '#000';
+                ctx.fillText(String(value), x + W / 2, y + H / 2);
+                ctx.lineWidth = 0.5;
+                ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+                ctx.beginPath(); ctx.moveTo(x + 10, y + 10); ctx.lineTo(x + 22, y + 32); ctx.stroke();
+            } else if (isOwner) {
+                ctx.font = 'bold 38px "Times New Roman"';
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillText(String(value), x + W / 2, y + H / 2);
+                ctx.font = '10px Courier';
+                ctx.fillStyle = '#555';
+                ctx.fillText('(HIDDEN)', x + W / 2, y + H - 14);
             } else {
-                setStatus("Opponent's turn…", 'info');
-                drawBtn.disabled = true;
-                stayBtn.disabled = true;
+                ctx.font = 'bold 36px "Times New Roman"';
+                ctx.fillStyle = '#444';
+                ctx.fillText('?', x + W / 2, y + H / 2);
             }
         }
 
-        function setStatus(msg, type) {
-            turnStatus.textContent = msg;
-            turnStatus.className = 'status ' + (type || 'info');
+        _drawHand(hand, cardsY, isOwner) {
+            const spacing = 88;
+            const cx = this.tblL + (this.tblR - this.tblL) / 2;
+            const startX = cx - (hand.length * spacing) / 2;
+            hand.forEach((c, i) => this._drawCard(startX + i * spacing, cardsY, c.values, c.faceup, isOwner));
         }
 
-        function createCardEl(card, isOwn) {
-            const el = document.createElement('div');
-            if (!card.faceup) {
-                el.className = 'card face-down';
-                el.textContent = isOwn ? card.values : '?';
+        _drawScore(score, hasFaceDown, visibleScore, isLocal, x, y) {
+            const ctx = this.ctx;
+            ctx.textBaseline = 'middle';
+            if (isLocal) {
+                ctx.font = 'italic bold 62px "Times New Roman"';
+                ctx.fillStyle = '#fff';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${score}/21`, x, y);
             } else {
-                el.className = 'card';
-                el.textContent = card.values;
+                ctx.font = 'italic 30px "Times New Roman"';
+                ctx.fillStyle = '#bbb';
+                ctx.textAlign = 'left';
+                ctx.fillText(hasFaceDown ? `?+${visibleScore}/21` : `${visibleScore}/21`, x, y);
             }
-            return el;
         }
 
-        // ── Reconnection ───────────────────────────────────────────────────
-        window.addEventListener('beforeunload', () => {
-            if (currentRoom) {
-                localStorage.setItem('twentyone-room', currentRoom);
-                localStorage.setItem('twentyone-host', isHost);
-            }
-        });
+        _drawMachineBox() {
+            const ctx = this.ctx;
+            const s = this.state;
+            if (!s) return;
+            const bx = 10, bw = 148, by = this.canvas.height * 0.38, bh = 168;
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(bx, by, bw, bh);
+            ctx.strokeStyle = '#2a2a2a';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(bx, by, bw, bh);
+            const p1Dist = s.machinePosition;
+            const p2Dist = 12 - s.machinePosition;
+            const move   = s.moveDistance;
+            const row = (label, val, ry) => {
+                ctx.font = '10px Courier'; ctx.fillStyle = '#555';
+                ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+                ctx.fillText(label, bx + 12, ry);
+                ctx.font = 'bold 26px Courier'; ctx.fillStyle = '#fff';
+                ctx.fillText(String(val), bx + 12, ry + 14);
+            };
+            const sep = (sy) => {
+                ctx.strokeStyle = '#1e1e1e'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(bx + 10, sy); ctx.lineTo(bx + bw - 10, sy); ctx.stroke();
+            };
+            row('P2 DIST', p2Dist, by + 10);
+            sep(by + 58);
+            row('MOVE', move, by + 66);
+            sep(by + 114);
+            row('P1 DIST', p1Dist, by + 122);
+        }
 
-        window.addEventListener('load', () => {
-            const savedRoom = localStorage.getItem('twentyone-room');
-            const savedHost = localStorage.getItem('twentyone-host') === 'true';
-            if (savedRoom) {
-                socket.emit('reconnect-room', { roomCode: savedRoom, wasHost: savedHost });
+        _drawMachineTrack() {
+            const ctx = this.ctx;
+            const s = this.state;
+            if (!s) return;
+            this.displayedMachinePos += (s.machinePosition - this.displayedMachinePos) * 0.06;
+            const { tblL, tblR, tblT, tblB } = this;
+            const centerY = (tblT + tblB) / 2;
+            const trackW = Math.min(340, (tblR - tblL) * 0.55);
+            const trackX = tblL + (tblR - tblL) / 2 - trackW / 2;
+            const trackH = 8;
+            ctx.fillStyle = '#151515';
+            ctx.fillRect(trackX, centerY - trackH / 2, trackW, trackH);
+            ctx.strokeStyle = '#2e2e2e'; ctx.lineWidth = 1;
+            ctx.strokeRect(trackX, centerY - trackH / 2, trackW, trackH);
+            ctx.strokeStyle = '#2a2a2a';
+            for (let i = 0; i <= 12; i++) {
+                const nx = trackX + (i / 12) * trackW;
+                ctx.beginPath(); ctx.moveTo(nx, centerY - 9); ctx.lineTo(nx, centerY + 9); ctx.stroke();
             }
-        });
+            const ix = trackX + (this.displayedMachinePos / 12) * trackW;
+            ctx.shadowBlur = 14; ctx.shadowColor = '#0f0';
+            ctx.fillStyle = '#0f0';
+            ctx.beginPath(); ctx.arc(ix, centerY, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.font = '9px Courier'; ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+            ctx.fillText('THE MACHINE', tblL + (tblR - tblL) / 2, centerY - 14);
+        }
+
+        _drawStatus() {
+            const ctx = this.ctx;
+            const s = this.state;
+            if (!s) return;
+            if (s.revealPhase && s.revealPhase !== 'playing' && s.revealPhase !== 'round-over') return;
+            let msg = '';
+            if (s.gameOver)            msg = `✓ Game Over! ${s.winner} wins!`;
+            else if (!s.isYourTurn)    msg = `⏳ ${s.opponentName}'s turn…`;
+            else if (s.yourBusted)     msg = '💥 Busted! Right-click to Stay.';
+            else if (s.mustDraw)       msg = '⚠ Timer expired — you must draw a card!';
+            else if (s.yourStayed)     msg = 'You stayed. Waiting for opponent…';
+            else                       msg = '▶ Your turn — L-click Draw, R-click Stay';
+            ctx.font = '14px Courier';
+            ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+            const mw = ctx.measureText(msg).width + 28;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(this.canvas.width / 2 - mw / 2, 38, mw, 26);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(msg, this.canvas.width / 2, 44);
+        }
+
+        _drawRoundInfo() {
+            const s = this.state; if (!s) return;
+            const ctx = this.ctx;
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.font = '11px Courier';
+            ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+            ctx.fillText(`ROUND ${s.roundNumber}  TARGET ${s.targetNumber}  MOVE ${s.moveDistance}  ROOM ${s.roomCode ?? ''}`,
+                this.canvas.width - 12, 10);
+        }
+
+        _drawTimer() {
+            const s = this.state; if (!s) return;
+            const rem = s.turnTimeRemaining ?? 0;
+            if (rem <= 0) return;
+            const ctx = this.ctx;
+            ctx.fillStyle = rem <= 10 ? '#ff4444' : '#fff';
+            ctx.font = 'bold 22px Courier';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText(`⏱ ${rem}s`, this.canvas.width / 2, 10);
+        }
+
+        _drawControls() {
+            const ctx = this.ctx;
+            ctx.font = '12px Courier'; ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+            ctx.fillText('[L-Click] Draw   [R-Click] Stay   [Space] Abilities', this.tblL + 10, this.tblB + 10);
+        }
+
+        _drawRevealOverlay() {
+            const s = this.state; if (!s) return;
+            const phase = s.revealPhase;
+            if (!phase || phase === 'playing' || phase === 'round-over') return;
+            const msgs = {
+                'both-stayed':    'Both players have stayed — cards are about to be revealed',
+                'revealing':      'Revealing hidden cards…',
+                'machine-moving': 'The machine moves…',
+            };
+            const msg = msgs[phase];
+            if (!msg) return;
+            const ctx = this.ctx;
+            const W = this.canvas.width, H = this.canvas.height;
+            ctx.fillStyle = 'rgba(0,0,0,0.78)';
+            ctx.fillRect(0, 0, W, H);
+            ctx.font = 'bold 26px Courier';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const mw = ctx.measureText(msg).width + 60;
+            ctx.fillStyle = '#111';
+            ctx.fillRect(W / 2 - mw / 2, H / 2 - 36, mw, 72);
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            ctx.strokeRect(W / 2 - mw / 2, H / 2 - 36, mw, 72);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(msg, W / 2, H / 2);
+            const dots = '.'.repeat(Math.floor(Date.now() / 500) % 4);
+            ctx.font = '18px Courier'; ctx.fillStyle = '#666';
+            ctx.fillText(dots, W / 2, H / 2 + 26);
+            if (phase === 'machine-moving') this._drawMachineTrack();
+        }
+
+        _updateAndDrawAbilityFlash() {
+            const s = this.state;
+            if (s?.lastAbilityPlayed) {
+                const key = `${s.lastAbilityPlayed.playerName}:${s.lastAbilityPlayed.abilityName}`;
+                if (key !== this.lastAbilityKey) {
+                    this.lastAbilityKey = key;
+                    this.abilityFlashText = `${s.lastAbilityPlayed.playerName} used: ${s.lastAbilityPlayed.abilityName}`;
+                    this.abilityFlashEnd = Date.now() + 2500;
+                }
+            }
+            if (!this.abilityFlashText || Date.now() > this.abilityFlashEnd) return;
+            const alpha = Math.min(1, (this.abilityFlashEnd - Date.now()) / 500);
+            const ctx = this.ctx;
+            const cx = this.canvas.width / 2;
+            const cy = this.tblT + (this.tblB - this.tblT) / 2;
+            ctx.font = 'bold 20px Courier';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const fw = ctx.measureText(this.abilityFlashText).width + 40;
+            ctx.fillStyle = `rgba(0,0,0,${alpha * 0.9})`;
+            ctx.fillRect(cx - fw / 2, cy - 26, fw, 52);
+            ctx.strokeStyle = `rgba(255,200,0,${alpha})`; ctx.lineWidth = 1;
+            ctx.strokeRect(cx - fw / 2, cy - 26, fw, 52);
+            ctx.fillStyle = `rgba(255,200,0,${alpha})`;
+            ctx.fillText(this.abilityFlashText, cx, cy);
+        }
+
+        _drawAbilityMenu() {
+            if (!this.showAbilityMenu) return;
+            const s = this.state;
+            const list = s?.yourAbilities ?? [];
+            const ctx = this.ctx;
+            const sw = 300, sx = this.canvas.width - sw;
+            ctx.fillStyle = 'rgba(8,8,8,0.97)';
+            ctx.fillRect(sx, 0, sw, this.canvas.height);
+            ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, this.canvas.height); ctx.stroke();
+            ctx.fillStyle = '#eee'; ctx.font = 'bold 20px Courier';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('TRUMP CARDS', sx + sw / 2, 46);
+            if (list.length === 0) {
+                ctx.fillStyle = '#444'; ctx.font = '13px Courier';
+                ctx.fillText('No abilities', sx + sw / 2, 160);
+            }
+            list.forEach((ab, i) => {
+                const b = this._abBounds(i);
+                const hov = i === this.hoveredAbility;
+                ctx.fillStyle = hov ? 'rgba(255,200,0,0.1)' : '#111';
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+                ctx.strokeStyle = hov ? '#ffc107' : '#2a2a2a'; ctx.lineWidth = hov ? 1.5 : 1;
+                ctx.strokeRect(b.x, b.y, b.w, b.h);
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Courier';
+                ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+                ctx.fillText(ab.name, b.x + 14, b.y + 9);
+                ctx.fillStyle = '#666'; ctx.font = '11px Courier';
+                ctx.fillText(`[${ab.category}]`, b.x + 14, b.y + 27);
+                ctx.fillStyle = '#444';
+                ctx.fillText('Click to use', b.x + 14, b.y + 45);
+            });
+            if (this.tooltipAbility) this._drawTooltip(this.tooltipAbility, this.tooltipX, this.tooltipY);
+        }
+
+        _drawTooltip(ab, mx, my) {
+            const ctx = this.ctx;
+            const maxW = 230, pad = 12, lh = 17;
+            ctx.font = '12px Courier';
+            const words = ab.description.split(' ');
+            const lines = []; let line = '';
+            for (const w of words) {
+                const t = line ? `${line} ${w}` : w;
+                if (ctx.measureText(t).width > maxW - pad * 2) { if (line) lines.push(line); line = w; }
+                else line = t;
+            }
+            if (line) lines.push(line);
+            const th = pad * 2 + 18 + lines.length * lh;
+            let tx = mx - maxW - 8; if (tx < 5) tx = mx + 8;
+            let ty = my - th / 2; if (ty < 5) ty = 5;
+            if (ty + th > this.canvas.height - 5) ty = this.canvas.height - th - 5;
+            ctx.fillStyle = 'rgba(10,10,10,0.97)'; ctx.fillRect(tx, ty, maxW, th);
+            ctx.strokeStyle = '#ffc107'; ctx.lineWidth = 1; ctx.strokeRect(tx, ty, maxW, th);
+            ctx.fillStyle = '#ffc107'; ctx.font = 'bold 12px Courier';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+            ctx.fillText(ab.name, tx + pad, ty + pad);
+            ctx.fillStyle = '#bbb'; ctx.font = '12px Courier';
+            lines.forEach((l, i) => ctx.fillText(l, tx + pad, ty + pad + 18 + i * lh));
+        }
+
+        // ── Main render ─────────────────────────────────────────────────────
+        render() {
+            const ctx = this.ctx;
+            const W = this.canvas.width, H = this.canvas.height;
+            const BOX_W = 165;
+            this.tblL = BOX_W + 8;
+            this.tblR = W - 15;
+            this.tblT = H * 0.06;
+            this.tblB = H * 0.91;
+            const { tblL, tblR, tblT, tblB } = this;
+            const tblCx = tblL + (tblR - tblL) / 2;
+
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(0, 0, W, H);
+
+            this._drawTableSurface();
+
+            const s = this.state;
+            if (s) {
+                // Opponent (top)
+                ctx.fillStyle = '#777'; ctx.font = '11px Courier';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+                ctx.fillText((s.opponentName || 'Opponent').toUpperCase(), tblCx, tblT + 18);
+                this._drawHand(s.opponentHand, tblT + 34, false);
+                const oppFaceDown = s.opponentHand.some(c => !c.faceup);
+                this._drawScore(s.opponentVisibleScore, oppFaceDown, s.opponentVisibleScore, false, tblL + 14, tblT + 170);
+
+                // Local player (bottom)
+                const localCardsY = tblB - 148;
+                ctx.fillStyle = '#ccc'; ctx.font = '11px Courier';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+                ctx.fillText((s.yourName || 'You').toUpperCase(), tblCx, localCardsY - 10);
+                this._drawHand(s.yourHand, localCardsY, true);
+                this._drawScore(s.yourScore, false, s.yourScore, true, tblL + 14, tblB - 28);
+            }
+
+            // Machine track (always visible, centre of table)
+            this._drawMachineTrack();
+
+            // Left machine box
+            this._drawMachineBox();
+
+            // HUD
+            this._drawRoundInfo();
+            this._drawTimer();
+            this._drawStatus();
+            this._drawControls();
+
+            // Overlays
+            this._updateAndDrawAbilityFlash();
+            this._drawRevealOverlay();
+            this._drawAbilityMenu();
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Socket.io glue
+    // ═════════════════════════════════════════════════════════════════════════
+    const socket = io();
+    let currentRoom = null;
+    let isHost = false;
+    let renderer = null;
+
+    const lobby          = document.getElementById('lobby');
+    const menu           = document.getElementById('menu');
+    const waitingRoom    = document.getElementById('waitingRoom');
+    const gameCanvas     = document.getElementById('gameCanvas');
+    const playerNameIn   = document.getElementById('playerName');
+    const roomCodeIn     = document.getElementById('roomCode');
+    const displayRoomCode= document.getElementById('displayRoomCode');
+
+    function showGame() {
+        lobby.classList.add('hidden');
+        gameCanvas.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        document.body.style.padding  = '0';
+        if (!renderer) {
+            renderer = new MultiplayerRenderer(gameCanvas);
+            renderer.onDraw    = () => socket.emit('player-draw');
+            renderer.onStay    = () => socket.emit('player-stay');
+            renderer.onAbility = (idx) => socket.emit('use-ability', { abilityIndex: idx });
+        }
+    }
+
+    document.getElementById('createRoomBtn').addEventListener('click', () => {
+        const name = playerNameIn.value.trim() || 'Player 1';
+        socket.emit('create-room', { playerName: name });
+        isHost = true;
+    });
+
+    document.getElementById('joinRoomBtn').addEventListener('click', () => {
+        const code = roomCodeIn.value.trim().toUpperCase();
+        const name = playerNameIn.value.trim() || 'Player 2';
+        if (!code) { alert('Please enter a room code'); return; }
+        socket.emit('join-room', { roomCode: code, playerName: name });
+        isHost = false;
+    });
+
+    socket.on('room-created', (data) => {
+        currentRoom = data.roomCode;
+        displayRoomCode.textContent = data.roomCode;
+        menu.classList.add('hidden');
+        waitingRoom.classList.remove('hidden');
+    });
+
+    socket.on('room-joined', (data) => {
+        currentRoom = data.roomCode;
+        menu.classList.add('hidden');
+    });
+
+    socket.on('game-start', (data) => {
+        showGame();
+        if (renderer) {
+            renderer.state = { ...data.gameState, roomCode: currentRoom };
+            renderer.displayedMachinePos = data.gameState.machinePosition;
+        }
+    });
+
+    socket.on('game-state', (state) => {
+        if (!renderer) showGame();
+        if (renderer) {
+            renderer.state = { ...state, roomCode: currentRoom };
+        }
+    });
+
+    socket.on('error', (data) => { alert(data.message); });
+
+    socket.on('opponent-disconnected', () => {
+        if (renderer) renderer.state = { ...(renderer.state ?? {}), _disconnectMsg: 'Opponent disconnected. Waiting for reconnection…' };
+    });
+
+    socket.on('opponent-reconnected', () => {
+        if (renderer?.state) delete renderer.state._disconnectMsg;
+    });
+
+    socket.on('reconnected', (data) => {
+        currentRoom = data.roomCode;
+        showGame();
+    });
+
+    // Reconnection persistence
+    window.addEventListener('beforeunload', () => {
+        if (currentRoom) {
+            localStorage.setItem('twentyone-room', currentRoom);
+            localStorage.setItem('twentyone-host', String(isHost));
+        }
+    });
+    window.addEventListener('load', () => {
+        const savedRoom = localStorage.getItem('twentyone-room');
+        const savedHost = localStorage.getItem('twentyone-host') === 'true';
+        if (savedRoom) socket.emit('reconnect-room', { roomCode: savedRoom, wasHost: savedHost });
+    });
     </script>
 </body>
 </html>
-

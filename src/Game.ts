@@ -53,6 +53,13 @@ export class Game {
   mustDraw: boolean;  // Indicates player must draw (cannot stay) after timer forced action
   mustStay: boolean;  // Indicates busted player must stay before AI turn
   timePenaltyApplied: boolean;  // Track if penalty was applied for not staying after bust
+
+  // Round reveal phase – updated during endRound() for UI overlays
+  revealPhase: 'playing' | 'both-stayed' | 'revealing' | 'machine-moving' | 'round-over';
+
+  // Optional callback – called at each phase transition so the server (or tests)
+  // can push live state updates to connected clients during endRound delays.
+  onStateChange: (() => void) | null;
   
   constructor(player1Name: string, player2Name: string, settings?: GameSettings);
   constructor(player1Name: string, mode: GameMode, aiDifficulty?: AIDifficulty, settings?: GameSettings);
@@ -84,6 +91,10 @@ export class Game {
     this.mustDraw = false;
     this.mustStay = false;
     this.timePenaltyApplied = false;
+
+    // Reveal-phase tracking
+    this.revealPhase = 'playing';
+    this.onStateChange = null;
     
     // Initialize default settings
     this.settings = {
@@ -143,6 +154,7 @@ export class Game {
   // Initial deal for a round
   setupNewRound(): void {
     console.log(`\n=== Round ${this.roundNumber} ===`);
+    this.revealPhase = 'playing';
     
     // Reset and shuffle deck for each new round
     // This ensures all cards are available again
@@ -444,6 +456,10 @@ export class Game {
   async endRound(): Promise<void> {
     console.log("\n=== Round Over ===");
     console.log("Revealing hidden cards...");
+
+    // Phase 1: both players have finished, suspense before reveal
+    this.revealPhase = 'both-stayed';
+    this.onStateChange?.();
     
     // Add suspense before reveal
     await this.delay(3000);
@@ -451,6 +467,10 @@ export class Game {
     // Reveal all face-down cards
     this.players[0].revealFaceDownCard();
     this.players[1].revealFaceDownCard();
+
+    // Phase 2: cards revealed
+    this.revealPhase = 'revealing';
+    this.onStateChange?.();
     
     const player1 = this.players[0];
     const player2 = this.players[1];
@@ -484,17 +504,22 @@ export class Game {
     
     console.log(`Round winner: ${roundWinner.name} (Target: ${this.targetNumber})`);
     
-    // Pause before showing kill machine movement
-    await this.delay(3000);
-    
-    // Update kill machine
+    // Update kill machine, then broadcast so clients see the new position
     this.updateKillMachine(roundWinner);
-    
+
+    // Phase 3: machine moving (broadcast includes already-updated machinePosition)
+    this.revealPhase = 'machine-moving';
+    this.onStateChange?.();
+
     // Pause after kill machine update
     await this.delay(3000);
     
     // Check for game over
     this.checkGameOver();
+
+    // Phase 4: round over
+    this.revealPhase = 'round-over';
+    this.onStateChange?.();
     
     // Start next round if game continues
     if (!this.gameOver) {

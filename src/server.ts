@@ -107,6 +107,15 @@ io.on('connection', (socket: Socket) => {
     // Initialize game
     room.game = new Game(room.hostName, room.guestName, room.settings);
 
+    // Broadcast live state updates during endRound() phase transitions
+    room.game.onStateChange = () => {
+      if (!room.game) return;
+      io.to(room.hostSocketId).emit('game-state', serializeGameState(room.game, 0));
+      if (room.guestSocketId) {
+        io.to(room.guestSocketId).emit('game-state', serializeGameState(room.game, 1));
+      }
+    };
+
     // Notify both players
     socket.emit('room-joined', { roomCode });
     io.to(roomCode).emit('game-start', {
@@ -267,6 +276,16 @@ function serializeGameState(game: Game, playerIndex: number) {
     betModifier: game.betModifier,
     machinePosition: game.machinePosition,
     moveDistance: game.moveDistance,
+    revealPhase: game.revealPhase,
+
+    // Player names (needed by the canvas renderer)
+    yourName: player.name,
+    opponentName: opponent.name,
+
+    // Last ability played (for flash notification)
+    lastAbilityPlayed: game.lastAbilityPlayed
+      ? { playerName: game.lastAbilityPlayed.player.name, abilityName: game.lastAbilityPlayed.ability }
+      : null,
     
     // Your hand
     yourHand: player.hand.map(card => ({
