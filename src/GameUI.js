@@ -321,7 +321,6 @@ export class GameUI {
             msg = '⚠ Timer expired — you must draw a card!';
         }
         else if (game.mustStay && isLocalTurn) {
-            // Only show bust prompt when it is the LOCAL player who must acknowledge their bust
             msg = '💥 Busted! Right-click to Stay.';
         }
         else if (isLocalTurn) {
