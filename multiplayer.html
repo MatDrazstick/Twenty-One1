@@ -3,541 +3,483 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twenty-One - Online Multiplayer</title>
+    <title>Twenty-One — Online Multiplayer</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #000;
+            color: #eee;
+            font-family: 'Courier New', Courier, monospace;
             min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            color: #333;
+            justify-content: center;
+            padding: 20px;
         }
-        
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 900px;
-            width: 90%;
-        }
-        
-        h1 {
-            text-align: center;
-            color: #667eea;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-        
-        .menu {
+
+        /* ── Shared layout ── */
+        .screen {
+            width: 100%;
+            max-width: 860px;
             display: flex;
             flex-direction: column;
+            align-items: center;
             gap: 20px;
         }
-        
-        .input-group {
+
+        h1 {
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            letter-spacing: 0.15em;
+            color: #e0e0e0;
+            text-shadow: 0 0 30px rgba(0,200,0,0.3);
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: #555;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .divider {
+            width: 200px;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #3a5a3e, transparent);
+        }
+
+        /* ── Panels ── */
+        .panel {
+            background: #0d0d0d;
+            border: 1px solid #2a3a2e;
+            padding: 24px 28px;
+            width: 100%;
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            color: #555;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        /* ── Form elements ── */
+        .form-row {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 5px;
+            width: 100%;
         }
-        
+
         label {
-            font-weight: bold;
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        input[type="text"] {
+            background: #0a0a0a;
+            border: 1px solid #2a3a2e;
+            color: #eee;
+            font-family: inherit;
+            font-size: 1rem;
+            padding: 10px 14px;
+            outline: none;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus { border-color: #0f0; }
+
+        /* ── Buttons ── */
+        .btn {
+            background: transparent;
+            border: 2px solid #3a5a3e;
+            color: #ddd;
+            font-family: inherit;
+            font-size: 1rem;
+            letter-spacing: 0.08em;
+            padding: 14px 0;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+        }
+        .btn:hover:not(:disabled) {
+            background: rgba(0,200,0,0.08);
+            border-color: #0f0;
+            color: #fff;
+        }
+        .btn:disabled {
+            border-color: #1a2a1e;
+            color: #333;
+            cursor: not-allowed;
+        }
+        .btn.secondary {
+            border-color: #1e2e22;
+            color: #555;
+            font-size: 0.85rem;
+        }
+        .btn.secondary:hover:not(:disabled) {
+            border-color: #888;
+            color: #aaa;
+        }
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        /* ── Status messages ── */
+        .status {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 0.95rem;
+            border-left: 3px solid #3a5a3e;
+            background: #060f07;
+            color: #aaa;
+        }
+        .status.info    { border-color: #3a7a6a; color: #8ecfbe; }
+        .status.warn    { border-color: #7a6a3a; color: #cfbe8e; }
+        .status.success { border-color: #3a7a3e; color: #8ecf8e; }
+        .status.error   { border-color: #7a3a3a; color: #cf8e8e; }
+
+        /* ── Room code display ── */
+        .room-code {
+            font-size: 2.4rem;
+            letter-spacing: 0.25em;
+            color: #0f0;
+            text-shadow: 0 0 18px rgba(0,255,0,0.35);
+            text-align: center;
+            margin: 8px 0;
+        }
+
+        /* ── Game area ── */
+        .game-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 24px;
+            font-size: 0.8rem;
             color: #555;
         }
-        
-        input {
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        button {
-            padding: 15px 30px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: bold;
-        }
-        
-        button:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .game-info {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .game-info p {
-            margin: 5px 0;
-        }
-        
-        .room-code {
-            font-size: 2em;
-            color: #667eea;
-            font-weight: bold;
-            text-align: center;
-            margin: 20px 0;
-            letter-spacing: 5px;
-        }
-        
+        .game-meta span { color: #aaa; }
+
         .player-area {
-            background: #f9f9f9;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 10px 0;
+            border: 1px solid #1e2e22;
+            background: #070d08;
+            padding: 16px 20px;
+            width: 100%;
         }
-        
+        .player-area h3 {
+            font-size: 0.85rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+        .player-score {
+            font-size: 2rem;
+            font-style: italic;
+            color: #fff;
+            font-family: 'Times New Roman', serif;
+            margin-bottom: 10px;
+        }
+        .opponent-score {
+            font-size: 1.4rem;
+            font-style: italic;
+            color: #ccc;
+            font-family: 'Times New Roman', serif;
+            margin-bottom: 10px;
+        }
+
+        /* ── Card hand (DOM cards) ── */
         .hand {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
-            margin: 10px 0;
+            margin-bottom: 10px;
         }
-        
         .card {
-            width: 60px;
-            height: 90px;
-            border: 2px solid #333;
-            border-radius: 8px;
+            width: 64px;
+            height: 96px;
+            border: 1px solid #333;
+            background: #e3e3e3;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: white;
+            font-family: 'Times New Roman', serif;
             font-weight: bold;
+            font-size: 1.8rem;
+            color: #000;
+            position: relative;
         }
-        
         .card.face-down {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #1a1a1a;
+            color: #555;
+            font-size: 1.4rem;
         }
-        
-        .card.hearts, .card.diamonds {
-            color: red;
-        }
-        
-        .card.clubs, .card.spades {
-            color: black;
-        }
-        
+
+        /* ── Abilities ── */
         .abilities {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin: 10px 0;
+            gap: 8px;
         }
-        
         .ability-card {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 8px;
-            padding: 10px;
+            background: #0d1a0d;
+            border: 1px solid #3a5a2a;
+            padding: 10px 14px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background 0.2s, border-color 0.2s;
+            font-size: 0.85rem;
         }
-        
-        .ability-card:hover {
-            background: #ffc107;
-            transform: translateX(5px);
+        .ability-card:hover:not(.disabled) {
+            background: #1a2e1a;
+            border-color: #0f0;
         }
-        
         .ability-card.disabled {
-            opacity: 0.5;
+            opacity: 0.35;
             cursor: not-allowed;
         }
-        
-        .game-controls {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin: 20px 0;
+        .ability-card strong { color: #bfef9f; }
+        .ability-card p { color: #666; margin-top: 3px; font-size: 0.78rem; }
+
+        /* ── Machine track ── */
+        .machine-section {
+            width: 100%;
+            padding: 14px 20px;
+            background: #080808;
+            border: 1px solid #1e2e22;
         }
-        
-        .status-message {
-            text-align: center;
-            font-size: 1.2em;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
+        .machine-label {
+            font-size: 0.75rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 10px;
         }
-        
-        .status-message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-        
-        .status-message.warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .status-message.success {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-message.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .machine-position {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 1.2em;
-        }
-        
-        .machine-track {
+        .machine-track-wrap {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin: 10px 0;
-            padding: 10px;
-            background: #f5f5f5;
-            border-radius: 8px;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: #666;
         }
-        
-        .machine-icon {
-            font-size: 2em;
+        .machine-track {
+            flex: 1;
+            height: 8px;
+            background: #111;
+            border: 1px solid #2a2a2a;
+            position: relative;
+        }
+        .machine-indicator {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #0f0;
+            box-shadow: 0 0 10px #0f0, 0 0 20px rgba(0,255,0,0.4);
+            transition: left 0.4s ease;
+        }
+
+        /* ── Controls ── */
+        .game-controls {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        /* ── Misc ── */
+        .hidden { display: none !important; }
+
+        .back-link {
+            font-size: 0.8rem;
+            color: #333;
+            text-decoration: none;
+            letter-spacing: 0.06em;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: #888; }
+
+        .opp-ability-count {
+            font-size: 0.8rem;
+            color: #444;
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🃏 Twenty-One Online 🃏</h1>
-        
-        <!-- Main Menu -->
-        <div id="menu" class="menu">
-            <div class="input-group">
-                <label for="playerName">Your Name:</label>
-                <input type="text" id="playerName" placeholder="Enter your name" value="Player">
-            </div>
-            
-            <button id="createRoomBtn">Create Room</button>
-            
-            <div style="text-align: center; margin: 20px 0;">- OR -</div>
-            
-            <div class="input-group">
-                <label for="roomCode">Room Code:</label>
-                <input type="text" id="roomCode" placeholder="Enter room code" maxlength="8">
-            </div>
-            
-            <button id="joinRoomBtn">Join Room</button>
-        </div>
-        
-        <!-- Waiting Room -->
-        <div id="waitingRoom" class="hidden">
-            <div class="status-message info">
-                <p>Room Created!</p>
-                <div class="room-code" id="displayRoomCode"></div>
-                <p>Waiting for opponent to join...</p>
+
+    <!-- ══ Main Menu ══════════════════════════════════════════════════════ -->
+    <div id="menu" class="screen">
+        <h1>TWENTY-ONE</h1>
+        <p class="subtitle">Online Multiplayer</p>
+        <div class="divider"></div>
+
+        <div class="panel" style="max-width:360px">
+            <div class="form-row">
+                <label for="playerName">Your Name</label>
+                <input type="text" id="playerName" placeholder="Enter name" maxlength="20" value="Player">
             </div>
         </div>
-        
-        <!-- Game Area -->
-        <div id="gameArea" class="hidden">
-            <div class="game-info">
-                <p><strong>Room Code:</strong> <span id="gameRoomCode"></span></p>
-                <p><strong>Round:</strong> <span id="roundNumber">1</span></p>
-                <p><strong>Target Number:</strong> <span id="targetNumber">21</span></p>
-                <p><strong>Move Distance:</strong> <span id="moveDistance">1</span></p>
-            </div>
-            
-            <div class="machine-position">
-                <div class="machine-track">
-                    <span>👤 You</span>
-                    <span class="machine-icon">⚙️</span>
-                    <span>👤 Opponent</span>
+
+        <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px">
+            <button id="createRoomBtn" class="btn">▶ Create Room</button>
+
+            <p class="subtitle" style="text-align:center">— or —</p>
+
+            <div class="panel" style="gap:10px;display:flex;flex-direction:column">
+                <div class="form-row">
+                    <label for="roomCode">Room Code</label>
+                    <input type="text" id="roomCode" placeholder="Enter room code" maxlength="8">
                 </div>
-                <p>Machine Position: <span id="machinePosition">6</span></p>
+                <button id="joinRoomBtn" class="btn">⚡ Join Room</button>
             </div>
-            
-            <div class="status-message info" id="turnStatus">Waiting for game to start...</div>
-            
-            <!-- Your Area -->
-            <div class="player-area">
-                <h3>Your Hand (Score: <span id="yourScore">0</span>)</h3>
-                <div class="hand" id="yourHand"></div>
-                
-                <h4>Your Abilities:</h4>
-                <div class="abilities" id="yourAbilities"></div>
+        </div>
+
+        <a href="index.html" class="back-link">← Back to main menu</a>
+    </div>
+
+    <!-- ══ Waiting Room ═══════════════════════════════════════════════════ -->
+    <div id="waitingRoom" class="screen hidden">
+        <h1>TWENTY-ONE</h1>
+        <div class="divider"></div>
+        <div class="status info">Room created. Share this code with your opponent:</div>
+        <div class="room-code" id="displayRoomCode"></div>
+        <div class="status">Waiting for opponent to join…</div>
+    </div>
+
+    <!-- ══ Game Area ══════════════════════════════════════════════════════ -->
+    <div id="gameArea" class="screen hidden">
+
+        <!-- Meta info -->
+        <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
+            <h1 style="font-size:1.4rem">TWENTY-ONE</h1>
+            <div class="game-meta">
+                <div>ROOM <span id="gameRoomCode"></span></div>
+                <div>ROUND <span id="roundNumber">1</span></div>
+                <div>TARGET <span id="targetNumber">21</span></div>
+                <div>MOVE DIST <span id="moveDistance">1</span></div>
             </div>
-            
-            <!-- Opponent Area -->
-            <div class="player-area">
-                <h3>Opponent's Visible Cards (Score: <span id="opponentScore">0</span>)</h3>
-                <div class="hand" id="opponentHand"></div>
-                <p>Opponent has <span id="opponentAbilityCount">0</span> ability cards</p>
+        </div>
+        <div class="divider" style="width:100%;max-width:100%"></div>
+
+        <!-- Machine track -->
+        <div class="machine-section">
+            <div class="machine-label">THE MACHINE — Position <span id="machinePosition">6</span>/12</div>
+            <div class="machine-track-wrap">
+                <span id="p1Label">You</span>
+                <div class="machine-track" id="machineTrack">
+                    <div class="machine-indicator" id="machineIndicator" style="left:50%"></div>
+                </div>
+                <span id="p2Label">Opponent</span>
             </div>
-            
-            <!-- Game Controls -->
-            <div class="game-controls">
-                <button id="drawBtn" disabled>Draw Card</button>
-                <button id="stayBtn" disabled>Stay</button>
-            </div>
+        </div>
+
+        <!-- Turn status -->
+        <div class="status info" id="turnStatus">Waiting for game to start…</div>
+
+        <!-- Opponent area -->
+        <div class="player-area">
+            <h3>Opponent</h3>
+            <div class="opponent-score" id="opponentScore">?+0/21</div>
+            <div class="hand" id="opponentHand"></div>
+            <div class="opp-ability-count">Trump cards held: <span id="opponentAbilityCount">0</span></div>
+        </div>
+
+        <!-- Your area -->
+        <div class="player-area">
+            <h3>Your Hand</h3>
+            <div class="player-score" id="yourScore">0/21</div>
+            <div class="hand" id="yourHand"></div>
+            <div class="abilities" id="yourAbilities"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="game-controls">
+            <button id="drawBtn" class="btn" disabled>Draw Card</button>
+            <button id="stayBtn" class="btn" disabled>Stay</button>
         </div>
     </div>
-    
+
     <script>
         const socket = io();
         let currentRoom = null;
         let isHost = false;
-        
-        // DOM Elements
-        const menu = document.getElementById('menu');
-        const waitingRoom = document.getElementById('waitingRoom');
-        const gameArea = document.getElementById('gameArea');
-        const playerNameInput = document.getElementById('playerName');
-        const roomCodeInput = document.getElementById('roomCode');
-        const createRoomBtn = document.getElementById('createRoomBtn');
-        const joinRoomBtn = document.getElementById('joinRoomBtn');
-        const displayRoomCode = document.getElementById('displayRoomCode');
-        const gameRoomCode = document.getElementById('gameRoomCode');
-        const drawBtn = document.getElementById('drawBtn');
-        const stayBtn = document.getElementById('stayBtn');
-        const turnStatus = document.getElementById('turnStatus');
-        
-        // Create Room
+
+        // DOM
+        const menu           = document.getElementById('menu');
+        const waitingRoom    = document.getElementById('waitingRoom');
+        const gameArea       = document.getElementById('gameArea');
+        const playerNameInput= document.getElementById('playerName');
+        const roomCodeInput  = document.getElementById('roomCode');
+        const createRoomBtn  = document.getElementById('createRoomBtn');
+        const joinRoomBtn    = document.getElementById('joinRoomBtn');
+        const displayRoomCode= document.getElementById('displayRoomCode');
+        const gameRoomCode   = document.getElementById('gameRoomCode');
+        const drawBtn        = document.getElementById('drawBtn');
+        const stayBtn        = document.getElementById('stayBtn');
+        const turnStatus     = document.getElementById('turnStatus');
+        const machineIndicator = document.getElementById('machineIndicator');
+
+        // ── Actions ──────────────────────────────────────────────────────
         createRoomBtn.addEventListener('click', () => {
             const playerName = playerNameInput.value.trim() || 'Player 1';
             socket.emit('create-room', { playerName });
             isHost = true;
         });
-        
-        // Join Room
+
         joinRoomBtn.addEventListener('click', () => {
-            const roomCode = roomCodeInput.value.trim().toUpperCase();
-            const playerName = playerNameInput.value.trim() || 'Player 2';
-            
-            if (!roomCode) {
-                alert('Please enter a room code');
-                return;
-            }
-            
+            const roomCode  = roomCodeInput.value.trim().toUpperCase();
+            const playerName= playerNameInput.value.trim() || 'Player 2';
+            if (!roomCode) { alert('Please enter a room code'); return; }
             socket.emit('join-room', { roomCode, playerName });
             isHost = false;
         });
-        
-        // Draw Card
-        drawBtn.addEventListener('click', () => {
-            socket.emit('player-draw');
-        });
-        
-        // Stay
-        stayBtn.addEventListener('click', () => {
-            socket.emit('player-stay');
-        });
-        
-        // Room Created
+
+        drawBtn.addEventListener('click', () => { socket.emit('player-draw'); });
+        stayBtn.addEventListener('click', () => { socket.emit('player-stay'); });
+
+        // ── Socket events ─────────────────────────────────────────────────
         socket.on('room-created', (data) => {
             currentRoom = data.roomCode;
             displayRoomCode.textContent = data.roomCode;
-            gameRoomCode.textContent = data.roomCode;
+            gameRoomCode.textContent    = data.roomCode;
             menu.classList.add('hidden');
             waitingRoom.classList.remove('hidden');
         });
-        
-        // Room Joined
+
         socket.on('room-joined', (data) => {
             currentRoom = data.roomCode;
             gameRoomCode.textContent = data.roomCode;
             menu.classList.add('hidden');
         });
-        
-        // Game Start
+
         socket.on('game-start', (data) => {
             waitingRoom.classList.add('hidden');
             gameArea.classList.remove('hidden');
             updateGameState(data.gameState);
         });
-        
-        // Game State Update
-        socket.on('game-state', (state) => {
-            updateGameState(state);
-        });
-        
-        // Error
-        socket.on('error', (data) => {
-            alert(data.message);
-        });
-        
-        // Opponent Disconnected
+
+        socket.on('game-state', (state) => { updateGameState(state); });
+
+        socket.on('error', (data) => { alert(data.message); });
+
         socket.on('opponent-disconnected', () => {
-            turnStatus.textContent = 'Opponent disconnected! Waiting for reconnection...';
-            turnStatus.className = 'status-message warning';
+            setStatus('Opponent disconnected. Waiting for reconnection…', 'warn');
             drawBtn.disabled = true;
             stayBtn.disabled = true;
         });
-        
-        // Opponent Reconnected
+
         socket.on('opponent-reconnected', () => {
-            turnStatus.textContent = 'Opponent reconnected!';
-            turnStatus.className = 'status-message success';
+            setStatus('Opponent reconnected!', 'success');
         });
-        
-        // Update Game State
-        function updateGameState(state) {
-            // Update game info
-            document.getElementById('roundNumber').textContent = state.roundNumber;
-            document.getElementById('targetNumber').textContent = state.targetNumber;
-            document.getElementById('moveDistance').textContent = state.moveDistance;
-            document.getElementById('machinePosition').textContent = state.machinePosition;
-            
-            // Update your hand
-            const yourHand = document.getElementById('yourHand');
-            yourHand.innerHTML = '';
-            state.yourHand.forEach(card => {
-                const cardEl = createCardElement(card);
-                yourHand.appendChild(cardEl);
-            });
-            document.getElementById('yourScore').textContent = state.yourScore;
-            
-            // Update opponent hand
-            const opponentHand = document.getElementById('opponentHand');
-            opponentHand.innerHTML = '';
-            state.opponentHand.forEach(card => {
-                const cardEl = createCardElement(card);
-                opponentHand.appendChild(cardEl);
-            });
-            document.getElementById('opponentScore').textContent = state.opponentVisibleScore;
-            document.getElementById('opponentAbilityCount').textContent = state.opponentAbilityCount;
-            
-            // Update abilities
-            const abilitiesEl = document.getElementById('yourAbilities');
-            abilitiesEl.innerHTML = '';
-            state.yourAbilities.forEach((ability, index) => {
-                const abilityEl = document.createElement('div');
-                abilityEl.className = 'ability-card';
-                abilityEl.innerHTML = `
-                    <strong>${ability.name}</strong>
-                    <p style="font-size: 0.9em; margin-top: 5px;">${ability.description}</p>
-                `;
-                if (state.isYourTurn && !state.gameOver) {
-                    abilityEl.addEventListener('click', () => {
-                        socket.emit('use-ability', { abilityIndex: index });
-                    });
-                } else {
-                    abilityEl.classList.add('disabled');
-                }
-                abilitiesEl.appendChild(abilityEl);
-            });
-            
-            // Update turn status
-            if (state.gameOver) {
-                turnStatus.textContent = `Game Over! Winner: ${state.winner}`;
-                turnStatus.className = 'status-message success';
-                drawBtn.disabled = true;
-                stayBtn.disabled = true;
-                
-                // Clear localStorage when game ends
-                localStorage.removeItem('twentyone-room');
-                localStorage.removeItem('twentyone-host');
-            } else if (state.isYourTurn) {
-                if (state.yourBusted) {
-                    turnStatus.textContent = 'You busted! Click Stay to continue.';
-                    turnStatus.className = 'status-message error';
-                    drawBtn.disabled = true;
-                    stayBtn.disabled = false;
-                } else if (state.mustDraw) {
-                    turnStatus.textContent = 'You must draw a card!';
-                    turnStatus.className = 'status-message warning';
-                    drawBtn.disabled = false;
-                    stayBtn.disabled = true;
-                } else if (state.yourStayed) {
-                    turnStatus.textContent = 'You have stayed. Waiting for opponent...';
-                    turnStatus.className = 'status-message info';
-                    drawBtn.disabled = true;
-                    stayBtn.disabled = true;
-                } else {
-                    turnStatus.textContent = 'Your turn! Draw or Stay.';
-                    turnStatus.className = 'status-message success';
-                    drawBtn.disabled = false;
-                    stayBtn.disabled = false;
-                }
-            } else {
-                turnStatus.textContent = "Opponent's turn...";
-                turnStatus.className = 'status-message info';
-                drawBtn.disabled = true;
-                stayBtn.disabled = true;
-            }
-        }
-        
-        // Create Card Element
-        function createCardElement(card) {
-            const cardEl = document.createElement('div');
-            cardEl.className = 'card';
-            
-            if (!card.faceup) {
-                cardEl.classList.add('face-down');
-                cardEl.textContent = '🂠';
-            } else {
-                const valueEl = document.createElement('div');
-                valueEl.textContent = card.values; // The card value (1-11)
-                valueEl.style.fontSize = '2em';
-                cardEl.appendChild(valueEl);
-            }
-            
-            return cardEl;
-        }
-        
-        // Handle reconnection
-        window.addEventListener('beforeunload', () => {
-            if (currentRoom) {
-                localStorage.setItem('twentyone-room', currentRoom);
-                localStorage.setItem('twentyone-host', isHost);
-            }
-        });
-        
-        // Try to reconnect on load
-        window.addEventListener('load', () => {
-            const savedRoom = localStorage.getItem('twentyone-room');
-            const savedHost = localStorage.getItem('twentyone-host') === 'true';
-            
-            if (savedRoom) {
-                socket.emit('reconnect-room', { 
-                    roomCode: savedRoom, 
-                    wasHost: savedHost 
-                });
-            }
-        });
-        
+
         socket.on('reconnected', (data) => {
             currentRoom = data.roomCode;
             gameRoomCode.textContent = data.roomCode;
@@ -545,6 +487,113 @@
             waitingRoom.classList.add('hidden');
             gameArea.classList.remove('hidden');
         });
+
+        // ── Update state ───────────────────────────────────────────────────
+        function updateGameState(state) {
+            document.getElementById('roundNumber').textContent   = state.roundNumber;
+            document.getElementById('targetNumber').textContent  = state.targetNumber;
+            document.getElementById('moveDistance').textContent  = state.moveDistance;
+            document.getElementById('machinePosition').textContent = state.machinePosition;
+
+            // Machine indicator position (0–12 → 0%–100%)
+            const pct = (state.machinePosition / 12) * 100;
+            machineIndicator.style.left = pct + '%';
+
+            // Your hand
+            const yourHandEl = document.getElementById('yourHand');
+            yourHandEl.innerHTML = '';
+            state.yourHand.forEach(card => yourHandEl.appendChild(createCardEl(card, true)));
+            document.getElementById('yourScore').textContent =
+                state.yourScore + '/21';
+
+            // Opponent hand (only visible cards)
+            const oppHandEl = document.getElementById('opponentHand');
+            oppHandEl.innerHTML = '';
+            state.opponentHand.forEach(card => oppHandEl.appendChild(createCardEl(card, false)));
+            const oppVisible = state.opponentVisibleScore;
+            const oppHasFaceDown = state.opponentHand.some(c => !c.faceup);
+            document.getElementById('opponentScore').textContent =
+                oppHasFaceDown ? `?+${oppVisible}/21` : `${oppVisible}/21`;
+            document.getElementById('opponentAbilityCount').textContent = state.opponentAbilityCount;
+
+            // Abilities
+            const abilitiesEl = document.getElementById('yourAbilities');
+            abilitiesEl.innerHTML = '';
+            state.yourAbilities.forEach((ability, index) => {
+                const el = document.createElement('div');
+                el.className = 'ability-card' + (state.isYourTurn && !state.gameOver ? '' : ' disabled');
+                el.innerHTML = `<strong>${ability.name}</strong><p>[${ability.category}] ${ability.description}</p>`;
+                if (state.isYourTurn && !state.gameOver) {
+                    el.addEventListener('click', () => socket.emit('use-ability', { abilityIndex: index }));
+                }
+                abilitiesEl.appendChild(el);
+            });
+
+            // Turn status & button state
+            if (state.gameOver) {
+                setStatus(`Game Over — Winner: ${state.winner}`, 'success');
+                drawBtn.disabled = true;
+                stayBtn.disabled = true;
+                localStorage.removeItem('twentyone-room');
+                localStorage.removeItem('twentyone-host');
+            } else if (state.isYourTurn) {
+                if (state.yourBusted) {
+                    setStatus('You busted! Click Stay to continue.', 'error');
+                    drawBtn.disabled = true;
+                    stayBtn.disabled = false;
+                } else if (state.mustDraw) {
+                    setStatus('Timer expired — you must draw a card!', 'warn');
+                    drawBtn.disabled = false;
+                    stayBtn.disabled = true;
+                } else if (state.yourStayed) {
+                    setStatus('You have stayed. Waiting for opponent…', 'info');
+                    drawBtn.disabled = true;
+                    stayBtn.disabled = true;
+                } else {
+                    setStatus('Your turn — Draw or Stay.', 'success');
+                    drawBtn.disabled = false;
+                    stayBtn.disabled = false;
+                }
+            } else {
+                setStatus("Opponent's turn…", 'info');
+                drawBtn.disabled = true;
+                stayBtn.disabled = true;
+            }
+        }
+
+        function setStatus(msg, type) {
+            turnStatus.textContent = msg;
+            turnStatus.className = 'status ' + (type || 'info');
+        }
+
+        function createCardEl(card, isOwn) {
+            const el = document.createElement('div');
+            if (!card.faceup) {
+                el.className = 'card face-down';
+                el.textContent = isOwn ? card.values : '?';
+            } else {
+                el.className = 'card';
+                el.textContent = card.values;
+            }
+            return el;
+        }
+
+        // ── Reconnection ───────────────────────────────────────────────────
+        window.addEventListener('beforeunload', () => {
+            if (currentRoom) {
+                localStorage.setItem('twentyone-room', currentRoom);
+                localStorage.setItem('twentyone-host', isHost);
+            }
+        });
+
+        window.addEventListener('load', () => {
+            const savedRoom = localStorage.getItem('twentyone-room');
+            const savedHost = localStorage.getItem('twentyone-host') === 'true';
+            if (savedRoom) {
+                socket.emit('reconnect-room', { roomCode: savedRoom, wasHost: savedHost });
+            }
+        });
     </script>
 </body>
 </html>
+

@@ -32,8 +32,6 @@ export class GameUI {
     this.game = game;
     this.localPlayerIndex = localPlayerIndex;
 
-    // FIX: Canvas resizing issue resolved by binding the handler so it can be
-    // added/removed cleanly, and recalculating dimensions on every resize event.
     this.boundResize = () => this.resizeCanvas();
     window.addEventListener('resize', this.boundResize);
     this.resizeCanvas();
@@ -42,14 +40,12 @@ export class GameUI {
     this.startRenderLoop();
   }
 
-  // FIX: Canvas resizing issue resolved by recalculating width/height on every call
   private resizeCanvas(): void {
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
   }
 
   private setupEventListeners(): void {
-    // Space bar toggles ability sidebar
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
@@ -57,7 +53,6 @@ export class GameUI {
       }
     });
 
-    // Left-click: use ability if sidebar is open and hit, otherwise draw
     this.canvas.addEventListener('click', async (e) => {
       if (this.showAbilityMenu) {
         const idx = this.getHoveredAbilityIndex(e.clientX, e.clientY);
@@ -72,7 +67,6 @@ export class GameUI {
       }
     });
 
-    // Right-click: Stay
     this.canvas.addEventListener('contextmenu', async (e) => {
       e.preventDefault();
       const isLocalTurn = this.game.currentPlayerIndex === this.localPlayerIndex;
@@ -81,7 +75,6 @@ export class GameUI {
       }
     });
 
-    // Track mouse for tooltips
     this.canvas.addEventListener('mousemove', (e) => {
       this.mouseX = e.clientX;
       this.mouseY = e.clientY;
@@ -104,7 +97,6 @@ export class GameUI {
     });
   }
 
-  // Returns the pixel bounds of an ability card slot in the sidebar
   private getAbilityCardBounds(index: number): { x: number; y: number; w: number; h: number } {
     const sidebarW = 300;
     const x = this.canvas.width - sidebarW;
@@ -131,7 +123,6 @@ export class GameUI {
     this.animFrameId = requestAnimationFrame(loop);
   }
 
-  /** Stop rendering and clean up listeners */
   destroy(): void {
     if (this.animFrameId !== null) {
       cancelAnimationFrame(this.animFrameId);
@@ -142,6 +133,47 @@ export class GameUI {
 
   // ─── Drawing helpers ───────────────────────────────────────────────────────
 
+  /** Draw the green felt table surface in the lower portion of the screen */
+  private drawTable(): void {
+    const ctx = this.ctx;
+    const W = this.canvas.width;
+    const H = this.canvas.height;
+    const tableTop = H * 0.52;
+
+    // Felt surface gradient
+    const feltGrad = ctx.createLinearGradient(W / 2, tableTop, W / 2, H);
+    feltGrad.addColorStop(0,   '#1d4a21'); // darker far edge
+    feltGrad.addColorStop(0.4, '#2a5e2e'); // main felt green
+    feltGrad.addColorStop(1,   '#162e18'); // darker near edge
+    ctx.fillStyle = feltGrad;
+    ctx.fillRect(0, tableTop, W, H - tableTop);
+
+    // Subtle felt texture (noise lines)
+    ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+    ctx.lineWidth = 1;
+    for (let y = tableTop; y < H; y += 6) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    // Table edge — bright top border
+    ctx.strokeStyle = '#4a7a4e';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, tableTop);
+    ctx.lineTo(W, tableTop);
+    ctx.stroke();
+
+    // Inner shadow on table edge
+    const edgeShadow = ctx.createLinearGradient(0, tableTop, 0, tableTop + 18);
+    edgeShadow.addColorStop(0, 'rgba(0,0,0,0.45)');
+    edgeShadow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = edgeShadow;
+    ctx.fillRect(0, tableTop, W, 18);
+  }
+
   private drawCard(x: number, y: number, value: number, isFaceUp: boolean, isOwner: boolean): void {
     const ctx = this.ctx;
     const w = 80;
@@ -151,9 +183,8 @@ export class GameUI {
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
 
     if (isFaceUp) {
-      ctx.fillStyle = '#e3e3e3'; // off-white face-up card
+      ctx.fillStyle = '#e3e3e3';
     } else {
-      // Face-down: owner sees ghosted value, opponent sees dark back
       ctx.fillStyle = isOwner ? '#d4d4d4' : '#1a1a1a';
     }
     ctx.fillRect(x, y, w, h);
@@ -170,7 +201,6 @@ export class GameUI {
     if (isFaceUp) {
       ctx.fillStyle = '#000';
       ctx.fillText(value.toString(), x + w / 2, y + h / 2);
-      // Scuff marks aesthetic from ui_preview.html
       ctx.lineWidth = 0.5;
       ctx.strokeStyle = 'rgba(0,0,0,0.2)';
       ctx.beginPath();
@@ -179,14 +209,12 @@ export class GameUI {
       ctx.stroke();
     } else {
       if (isOwner) {
-        // Local player can see their own hidden card (ghosted)
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.fillText(value.toString(), x + w / 2, y + h / 2);
         ctx.font = '12px Courier';
         ctx.fillStyle = '#555';
         ctx.fillText('(HIDDEN)', x + w / 2, y + h - 15);
       } else {
-        // Opponent's face-down card shows "?"
         ctx.fillStyle = '#555';
         ctx.fillText('?', x + w / 2, y + h / 2);
       }
@@ -204,9 +232,10 @@ export class GameUI {
     });
   }
 
-  /** Score display:
-   *  - Local player: Total Score / 21
-   *  - Opponent:     Visible Score / 21 (hidden card shown as "?")
+  /**
+   * Score display — RE7 style:
+   *  Local player:  large italic "16/21" bottom-left
+   *  Opponent:      smaller "?+6/21" near opponent cards
    */
   private drawScore(playerIndex: number, x: number, y: number, isLocal: boolean): void {
     const ctx = this.ctx;
@@ -216,30 +245,24 @@ export class GameUI {
     if (isLocal) {
       const total = player.calculateTotalScore();
       ctx.fillStyle = '#fff';
-      ctx.font = 'italic bold 50px "Times New Roman"';
+      ctx.font = 'italic bold 64px "Times New Roman"';
       ctx.textAlign = 'left';
       ctx.fillText(`${total}/21`, x, y);
     } else {
       const visible = player.calculateVisibleScore();
       const hasFaceDown = player.faceDownCard !== null && !player.faceDownCard.faceup;
-      const text = hasFaceDown ? `? + ${visible}` : `${visible}`;
+      const text = hasFaceDown ? `?+${visible}/21` : `${visible}/21`;
 
-      ctx.fillStyle = '#fff';
-      ctx.font = 'italic 36px "Times New Roman"';
+      ctx.fillStyle = '#ccc';
+      ctx.font = 'italic 32px "Times New Roman"';
       ctx.textAlign = 'left';
       ctx.fillText(text, x, y);
-
-      ctx.fillStyle = '#aaa';
-      ctx.font = '18px Courier';
-      ctx.fillText(' / 21', x + ctx.measureText(text).width, y);
     }
   }
 
   /**
    * Machine track (green light indicator).
-   * HIDDEN during card-playing phase; shown when the game is over or
-   * during round-end reveal (caller passes visible=true).
-   * Displays numeric distance from each player at the track ends.
+   * Hidden during card-playing phase; shown when the game is over.
    */
   private drawMachine(centerY: number, visible: boolean): void {
     if (!visible) return;
@@ -249,14 +272,12 @@ export class GameUI {
     const trackHeight = 10;
     const trackX = this.canvas.width / 2 - trackWidth / 2;
 
-    // Track background
     ctx.fillStyle = '#111';
     ctx.fillRect(trackX, centerY - trackHeight / 2, trackWidth, trackHeight);
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
     ctx.strokeRect(trackX, centerY - trackHeight / 2, trackWidth, trackHeight);
 
-    // Notch marks every position (0–12)
     ctx.strokeStyle = '#444';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 12; i++) {
@@ -267,8 +288,7 @@ export class GameUI {
       ctx.stroke();
     }
 
-    // Machine indicator (green glowing circle)
-    const pos = this.game.machinePosition; // 0–12; 6 = center
+    const pos = this.game.machinePosition;
     const indicatorX = trackX + (pos / 12) * trackWidth;
 
     ctx.shadowBlur = 15;
@@ -279,7 +299,6 @@ export class GameUI {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Hanging line from indicator to top of screen
     ctx.strokeStyle = '#555';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -287,14 +306,12 @@ export class GameUI {
     ctx.lineTo(indicatorX, 0);
     ctx.stroke();
 
-    // Label
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.font = '10px Courier';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('THE MACHINE', this.canvas.width / 2, centerY - 22);
 
-    // Distance numbers (as seen in requirements Image 2)
     const distP1 = pos;
     const distP2 = 12 - pos;
     ctx.fillStyle = '#aaa';
@@ -313,7 +330,6 @@ export class GameUI {
     ctx.textAlign = 'left';
     ctx.font = '14px Courier';
 
-    // Background panel
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(x - 10, bottomY - 95, 235, 100);
 
@@ -340,14 +356,16 @@ export class GameUI {
     const ctx = this.ctx;
     const game = this.game;
     let msg = '';
+    const isLocalTurn = game.currentPlayerIndex === this.localPlayerIndex;
 
     if (game.gameOver) {
       msg = `✓ Game Over! ${game.winner?.name ?? '?'} wins!`;
-    } else if (game.mustDraw) {
+    } else if (game.mustDraw && isLocalTurn) {
       msg = '⚠ Timer expired — you must draw a card!';
-    } else if (game.mustStay) {
+    } else if (game.mustStay && isLocalTurn) {
+      // Only show bust prompt when it is the LOCAL player who must acknowledge their bust
       msg = '💥 Busted! Right-click to Stay.';
-    } else if (game.currentPlayerIndex === this.localPlayerIndex) {
+    } else if (isLocalTurn) {
       msg = '▶ Your turn — L-click Draw, R-click Stay';
     } else {
       const opp = game.players[1 - this.localPlayerIndex];
@@ -372,11 +390,9 @@ export class GameUI {
     const x = this.canvas.width - sidebarW;
     const player = this.game.players[this.localPlayerIndex];
 
-    // Sidebar background
     ctx.fillStyle = 'rgba(8,8,8,0.95)';
     ctx.fillRect(x, 0, sidebarW, this.canvas.height);
 
-    // Left border line
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -384,7 +400,6 @@ export class GameUI {
     ctx.lineTo(x, this.canvas.height);
     ctx.stroke();
 
-    // Title
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 22px Courier';
     ctx.textAlign = 'center';
@@ -395,7 +410,6 @@ export class GameUI {
       const b = this.getAbilityCardBounds(i);
       const isHovered = i === this.hoveredAbilityIndex;
 
-      // Card background (highlighted when hovered)
       ctx.fillStyle = isHovered ? 'rgba(255,200,0,0.15)' : 'rgba(30,30,30,0.9)';
       ctx.fillRect(b.x, b.y, b.w, b.h);
 
@@ -403,19 +417,16 @@ export class GameUI {
       ctx.lineWidth = isHovered ? 2 : 1;
       ctx.strokeRect(b.x, b.y, b.w, b.h);
 
-      // Ability name
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 14px Courier';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
       ctx.fillText(ability.name, b.x + 15, b.y + 10);
 
-      // Category label
       ctx.fillStyle = '#aaa';
       ctx.font = '11px Courier';
       ctx.fillText(`[${ability.category}]`, b.x + 15, b.y + 28);
 
-      // Click hint
       ctx.fillStyle = '#666';
       ctx.fillText('Click to use', b.x + 15, b.y + 46);
     });
@@ -428,13 +439,11 @@ export class GameUI {
       ctx.fillText('No abilities', x + sidebarW / 2, 160);
     }
 
-    // Tooltip shown when hovering an ability card
     if (this.tooltipAbility) {
       this.drawTooltip(this.tooltipAbility, this.tooltipX, this.tooltipY);
     }
   }
 
-  /** Tooltip box shown on ability card hover with the full description */
   private drawTooltip(ability: AbilityCard, mx: number, my: number): void {
     const ctx = this.ctx;
     const maxW = 240;
@@ -443,7 +452,6 @@ export class GameUI {
 
     ctx.font = '12px Courier';
 
-    // Word-wrap description
     const words = ability.description.split(' ');
     const lines: string[] = [];
     let line = '';
@@ -460,7 +468,6 @@ export class GameUI {
 
     const tooltipH = padding * 2 + 20 + lines.length * lineHeight;
 
-    // Position tooltip to the left of cursor, clamped inside viewport
     let tx = mx - maxW - 10;
     if (tx < 5) tx = mx + 10;
     let ty = my - tooltipH / 2;
@@ -473,14 +480,12 @@ export class GameUI {
     ctx.lineWidth = 1;
     ctx.strokeRect(tx, ty, maxW, tooltipH);
 
-    // Name
     ctx.fillStyle = '#ffc107';
     ctx.font = 'bold 13px Courier';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(ability.name, tx + padding, ty + padding);
 
-    // Description lines
     ctx.fillStyle = '#ccc';
     ctx.font = '12px Courier';
     lines.forEach((l, i) => {
@@ -504,50 +509,48 @@ export class GameUI {
     const W = this.canvas.width;
     const H = this.canvas.height;
     const cx = W / 2;
-    const cy = H / 2;
 
-    // 1. Background: felt-table radial gradient with vignette
-    const grad = ctx.createRadialGradient(cx, cy, 80, cx, cy, Math.max(W, H) * 0.7);
-    grad.addColorStop(0, '#2b3a30'); // centre light green
-    grad.addColorStop(1, '#0f1110'); // dark vignette edges
-    ctx.fillStyle = grad;
+    // 1. Dark background (RE7 style: near-black)
+    ctx.fillStyle = '#0d0d0d';
     ctx.fillRect(0, 0, W, H);
 
-    // 2. Machine track — HIDDEN during the card-playing phase;
-    //    revealed only when the game is over (round-end reveal handled by Game.endRound).
-    const machineVisible = this.game.gameOver;
-    this.drawMachine(cy, machineVisible);
+    // 2. Green felt table in the lower half
+    this.drawTable();
 
-    // 3. Opponent area (top half)
+    // 3. Machine track — revealed only when game is over
+    const machineVisible = this.game.gameOver;
+    this.drawMachine(H * 0.35, machineVisible);
+
+    // 4. Opponent area (upper half, above the table)
     const opponentIndex = 1 - this.localPlayerIndex;
-    const opponentCardsY = cy - 230;
+    const opponentCardsY = H * 0.18;
     this.drawPlayerCards(opponentIndex, opponentCardsY, false);
 
     // Opponent name label
-    ctx.fillStyle = '#bbb';
-    ctx.font = '14px Courier';
+    ctx.fillStyle = '#aaa';
+    ctx.font = '13px Courier';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText(this.game.players[opponentIndex].name, cx, opponentCardsY - 20);
+    ctx.fillText(this.game.players[opponentIndex].name, cx, opponentCardsY - 14);
 
-    // Opponent score: Visible Score / 21
+    // Opponent score — near opponent cards, left-aligned (RE7: "?+6/21")
     this.drawScore(opponentIndex, cx - 180, opponentCardsY - 50, false);
 
-    // 4. Local player area (bottom half)
-    const localCardsY = cy + 120;
+    // 5. Local player cards — placed ON the table
+    const localCardsY = H * 0.60;
     this.drawPlayerCards(this.localPlayerIndex, localCardsY, true);
 
-    // Local player name label
+    // Local player name label — above cards
     ctx.fillStyle = '#eee';
-    ctx.font = '14px Courier';
+    ctx.font = '13px Courier';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText(this.game.players[this.localPlayerIndex].name, cx, localCardsY + 130);
+    ctx.fillText(this.game.players[this.localPlayerIndex].name, cx, localCardsY - 10);
 
-    // Local player score: Total Score / 21
-    this.drawScore(this.localPlayerIndex, cx - 180, localCardsY + 155, true);
+    // Local player score — large bottom-left, RE7 style ("11/21")
+    this.drawScore(this.localPlayerIndex, 20, H - 120, true);
 
-    // 5. HUD overlay
+    // 6. HUD overlay
     this.drawRoundInfo();
     this.drawTimer();
     this.drawStatusMessage();
@@ -555,3 +558,4 @@ export class GameUI {
     this.drawAbilityMenu();
   }
 }
+

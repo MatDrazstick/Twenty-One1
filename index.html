@@ -42,7 +42,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(ellipse at center, #1a2e1f 0%, #0c120d 100%);
+            background: #000;
             z-index: 10;
             gap: 24px;
             padding: 40px 20px;
@@ -151,11 +151,8 @@
         <p class="subtitle">A card game of skill and machine</p>
         <div class="divider"></div>
         <button id="btn-singleplayer" class="menu-btn">▶ Singleplayer</button>
-        <button id="btn-multiplayer"  class="menu-btn">⚡ Multiplayer (Local)</button>
+        <button id="btn-multiplayer"  class="menu-btn">⚡ Online Multiplayer</button>
         <div class="divider"></div>
-        <p class="subtitle" style="font-size:0.75rem">
-            Online multiplayer → <a href="multiplayer.html" style="color:#3a7a3e">multiplayer.html</a>
-        </p>
     </div>
 
     <!-- ════════════════════════════════════════════════════════════════
@@ -170,12 +167,6 @@
             <div class="form-row">
                 <label for="player-name">Your Name</label>
                 <input type="text" id="player-name" placeholder="Player 1" maxlength="20">
-            </div>
-
-            <!-- Player 2 name (multiplayer only) -->
-            <div class="form-row" id="player2-row" style="display:none">
-                <label for="player2-name">Player 2 Name</label>
-                <input type="text" id="player2-name" placeholder="Player 2" maxlength="20">
             </div>
 
             <!-- Timer -->
