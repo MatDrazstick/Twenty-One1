@@ -37,6 +37,11 @@ export class Game {
     mustDraw; // Indicates player must draw (cannot stay) after timer forced action
     mustStay; // Indicates busted player must stay before AI turn
     timePenaltyApplied; // Track if penalty was applied for not staying after bust
+    // Round reveal phase – updated during endRound() for UI overlays
+    revealPhase;
+    // Optional callback – called at each phase transition so the server (or tests)
+    // can push live state updates to connected clients during endRound delays.
+    onStateChange;
     constructor(player1Name, player2NameOrMode, aiDifficultyOrSettings, settings) {
         // Initialize basic properties
         this.deck = new Deck();
@@ -64,6 +69,9 @@ export class Game {
         this.mustDraw = false;
         this.mustStay = false;
         this.timePenaltyApplied = false;
+        // Reveal-phase tracking
+        this.revealPhase = 'playing';
+        this.onStateChange = null;
         // Initialize default settings
         this.settings = {
             timerSeconds: 30,
@@ -118,6 +126,7 @@ export class Game {
     // Initial deal for a round
     setupNewRound() {
         console.log(`\n=== Round ${this.roundNumber} ===`);
+        this.revealPhase = 'playing';
         // Reset and shuffle deck for each new round
         // This ensures all cards are available again
         this.deck.reset();
@@ -254,7 +263,18 @@ export class Game {
             else {
                 this.player2Stayed = true;
             }
-            this.switchTurn();
+            // Bug B Fix: Check whether the other player is already done (stayed or busted).
+            // Previously this always called switchTurn(), causing 1-2 spurious extra turns
+            // before the round ended when the other player had already completed their action.
+            const otherIdx = 1 - this.currentPlayerIndex;
+            const otherPlayerDone = this.players[otherIdx].isBusted
+                || (otherIdx === 0 ? this.player1Stayed : this.player2Stayed);
+            if (otherPlayerDone) {
+                await this.endRound();
+            }
+            else {
+                this.switchTurn();
+            }
             return;
         }
         console.log(`${currentPlayer.name} stays.`);
@@ -321,6 +341,13 @@ export class Game {
     // Execute AI player's turn
     async executeAITurn() {
         const aiPlayer = this.players[1];
+        // Bug A Fix: If AI has busted and mustStay is pending, auto-acknowledge the bust.
+        // Without this, the game freezes because executeAITurn returns early (isBusted check
+        // below) while mustStay remains set and the turn never switches back to the human.
+        if (aiPlayer.isBusted && this.mustStay) {
+            await this.playerStays();
+            return;
+        }
         // Bug 2 Fix: Check if AI has already stayed or busted before acting
         if (aiPlayer.isBusted || this.player2Stayed) {
             // Don't log here, let the game loop handle it
@@ -355,11 +382,17 @@ export class Game {
     async endRound() {
         console.log("\n=== Round Over ===");
         console.log("Revealing hidden cards...");
+        // Phase 1: both players have finished, suspense before reveal
+        this.revealPhase = 'both-stayed';
+        this.onStateChange?.();
         // Add suspense before reveal
         await this.delay(3000);
         // Reveal all face-down cards
         this.players[0].revealFaceDownCard();
         this.players[1].revealFaceDownCard();
+        // Phase 2: cards revealed
+        this.revealPhase = 'revealing';
+        this.onStateChange?.();
         const player1 = this.players[0];
         const player2 = this.players[1];
         const score1 = player1.calculateTotalScore();
@@ -388,14 +421,18 @@ export class Game {
             roundWinner = (Math.abs(this.targetNumber - score1) < Math.abs(this.targetNumber - score2)) ? player1 : player2;
         }
         console.log(`Round winner: ${roundWinner.name} (Target: ${this.targetNumber})`);
-        // Pause before showing kill machine movement
-        await this.delay(3000);
-        // Update kill machine
+        // Update kill machine, then broadcast so clients see the new position
         this.updateKillMachine(roundWinner);
+        // Phase 3: machine moving (broadcast includes already-updated machinePosition)
+        this.revealPhase = 'machine-moving';
+        this.onStateChange?.();
         // Pause after kill machine update
         await this.delay(3000);
         // Check for game over
         this.checkGameOver();
+        // Phase 4: round over
+        this.revealPhase = 'round-over';
+        this.onStateChange?.();
         // Start next round if game continues
         if (!this.gameOver) {
             this.roundNumber++;
