@@ -135,7 +135,7 @@ node src/aiAbilityDemo.js     # AI ability usage demonstration
 See **[COMPREHENSIVE_TEST_RESULTS.md](COMPREHENSIVE_TEST_RESULTS.md)** for:
 - Complete console commands for all 131+ tests
 - Actual console inputs and outputs
-- Test results organised by feature branch
+- Test results organized by feature branch
 - Analysis and explanations for each test
 - Summary statistics (97.7% pass rate)
 

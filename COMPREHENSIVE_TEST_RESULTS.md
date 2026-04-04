@@ -3206,7 +3206,7 @@ They test boundary conditions that behave as designed.
 | Edge Case Tests | 1 | 45 | 42 | 3* | 93.3% |
 | **TOTAL** | **19+** | **131+** | **128+** | **3*** | **97.7%** |
 
-*Note: The 3 "failures" in edge case tests are expected edge case behaviours, not actual bugs.*
+*Note: The 3 "failures" in edge case tests are expected edge case behaviors, not actual bugs.*
 
 ### Test Files by Feature
 
