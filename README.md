@@ -2,17 +2,17 @@
 
 A card game implementation where two players compete to get as close to 21 as possible without going over, with a unique "kill machine" mechanic that adds strategic pressure to each round, plus an **Ability Card system** that provides strategic advantages.
 
-## 📖 Quick Links
+## Quick Links
 
 - **[Game Documentation](README.md)** - This file
-- **[Test Results](COMPREHENSIVE_TEST_RESULTS.md)** - Complete test documentation with console I/O ⭐
+- **[Test Results](COMPREHENSIVE_TEST_RESULTS.md)** - Complete test documentation with console I/O
 - **[Code History](CODE_HISTORY.md)** - Full changelog and feature history
 - **[Documentation Guide](DOCUMENTATION_GUIDE.md)** - Navigate all documentation
 - **[Server Setup](SERVER_README.md)** - Online multiplayer setup
 
 ## Features
 
-### Ability Card System (NEW!)
+### Ability Card System
 Each round, players receive 2 random ability cards that can be used strategically to gain advantages. There are 24 unique abilities across 4 categories:
 
 #### Add Number Abilities (5 cards)
@@ -45,7 +45,7 @@ Each round, players receive 2 random ability cards that can be used strategicall
 
 ## Game Modes
 
-### Online Multiplayer Mode (NEW!)
+### Online Multiplayer Mode
 Play against another human player online using Socket.io! Players can create or join rooms using unique room codes and play in real-time.
 
 See [SERVER_README.md](SERVER_README.md) for server setup and usage instructions.
@@ -130,20 +130,18 @@ node src/abilityTest.js       # Ability card system tests (27 tests)
 node src/aiAbilityDemo.js     # AI ability usage demonstration
 ```
 
-## 📚 Test Documentation
-
-**Want to see detailed test results with console inputs and outputs?**
+## Test Documentation
 
 See **[COMPREHENSIVE_TEST_RESULTS.md](COMPREHENSIVE_TEST_RESULTS.md)** for:
-- ✅ Complete console commands for all 131+ tests
-- ✅ Actual console inputs and outputs
-- ✅ Test results organized by feature branch
-- ✅ Analysis and explanations for each test
-- ✅ Summary statistics (97.7% pass rate)
+- Complete console commands for all 131+ tests
+- Actual console inputs and outputs
+- Test results organized by feature branch
+- Analysis and explanations for each test
+- Summary statistics (97.7% pass rate)
 
-**Other test documentation:**
+Other test documentation:
 - [IterativeTests.txt](IterativeTests.txt) - Iterative test logs
-- [PENETRATION_TEST_RESULTS.md](PENETRATION_TEST_RESULTS.md) - Security and edge case testing
+- [PENETRATION_TEST_RESULTS.md](PENETRATION_TEST_RESULTS.md) - Edge case and robustness tests
 - [BUGFIX.txt](BUGFIX.txt) - Bug fix verification tests
 
 ## AI Strategy Details
