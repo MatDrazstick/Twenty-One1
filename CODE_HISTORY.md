@@ -1,8 +1,8 @@
-# Twenty-One Game - Complete Code History and Changes Documentation
+# Twenty-One Game - Code History and Changes
 
 **Repository:** thakhan29m-tech/Twenty-One  
 **Documentation Date:** February 13, 2026 (Updated: March 17, 2026)  
-**Purpose:** Comprehensive documentation of all code changes, additions, removals, updates, and bug fixes across all branches and commits
+**Purpose:** Documents all code changes, additions, bug fixes, and test results across the major pull requests
 
 ---
 
@@ -1815,13 +1815,13 @@ Players can freely draw or stay on any turn!
 
 | Bug ID | Description | PR | Severity | Status |
 |--------|-------------|-----|----------|--------|
-| 1 | Hidden card not shown to player | Various | Minor | ✓ Fixed |
-| 2 | Timer force draw doesn't continue to AI turn | #5 | Medium | ✓ Fixed |
-| 3 | Force draw on busted player causes error | #5 | Medium | ✓ Fixed |
-| 4 | isBusted flag not reset between rounds | #2 | High | ✓ Fixed |
-| 5 | Stay behavior locks players | #7 | Critical | ✓ Fixed |
-| 6 | Stay input blocked after forced draw bust | Post-#7 | High | ✓ Fixed |
-| 7 | Wrong winner when both players bust | Post-#7 | High | ✓ Fixed |
+| 1 | Hidden card not shown to player | Various | Minor | Fixed |
+| 2 | Timer force draw doesn't continue to AI turn | #5 | Medium | Fixed |
+| 3 | Force draw on busted player causes error | #5 | Medium | Fixed |
+| 4 | isBusted flag not reset between rounds | #2 | High | Fixed |
+| 5 | Stay behavior locks players | #7 | Critical | Fixed |
+| 6 | Stay input blocked after forced draw bust | Post-#7 | High | Fixed |
+| 7 | Wrong winner when both players bust | Post-#7 | High | Fixed |
 
 ### Bug Details from BUGFIX.txt
 
@@ -1889,7 +1889,7 @@ if (this.lastPlayerIndexWhoStayed !== null &&
 ```
 
 #### Bug 6: Stay Input Blocked After Forced Draw Bust
-**Discovery:** Found through penetration testing (45 tests)  
+**Discovery:** Found during edge case testing (45 tests)  
 **Root Cause:** `forcedActionTaken` flag blocked player input after timer forced draw that resulted in bust  
 **Fix:** Added flag check to ignore pending input after forced action
 ```typescript
@@ -1946,8 +1946,8 @@ if (dist1 < dist2) { winner = 0; }
 - **10 multiplayer tests:** Room management, synchronization
 - **Security tests:** 0 vulnerabilities found
 - **Bug verification:** Stay behavior fix confirmed
-- **Penetration testing:** 45 comprehensive tests (43/45 passed = 95.6%)
-- **Result:** Production ready
+- **Edge case testing:** 45 edge case tests (43/45 passed = 95.6%)
+- **Result:** 95.6% pass rate on edge case tests
 
 ### Total Testing Stats
 
@@ -1960,7 +1960,7 @@ Bugs Fixed: 7 (100%)
 Security Vulnerabilities: 0
 ```
 
-### Penetration Test Results (Post-PR #7)
+### Edge Case Test Results (Post-PR #7)
 
 From `PENETRATION_TEST_RESULTS.md`:
 
@@ -2125,35 +2125,32 @@ Twenty-One/
 
 - **7 total bugs** discovered and fixed
 - Most critical: Stay behavior bug (players locked into staying)
-- All verified through automated and penetration testing
+- All verified through automated and edge case testing
 - 100% bug fix rate
 
 ### Tests Created
 
 - **17+ test files** covering all features
 - **89+ individual tests** with 98.9% pass rate
-- **Penetration testing**: 45 tests, 95.6% success
+- **Edge case testing**: 45 tests, 95.6% success
 - **Security scan**: 0 vulnerabilities
 
 ---
 
 ## Conclusion
 
-The Twenty-One game evolved from a simple two-player card game into a feature-rich, multiplayer-capable game with:
+The Twenty-One game was built through four main pull requests, adding:
 
-- ✅ AI opponents with 5 difficulty levels
-- ✅ 24 strategic ability cards
-- ✅ Configurable game settings
-- ✅ Real-time online multiplayer
-- ✅ Comprehensive testing (98.9% pass rate)
-- ✅ Zero security vulnerabilities
-- ✅ Excellent documentation
-- ✅ All bugs fixed (7/7)
+- AI opponents with 5 difficulty levels
+- 24 strategic ability cards
+- Configurable game settings
+- Real-time online multiplayer
+- 98.9% test pass rate across 17+ test files
+- All 7 bugs found during testing fixed
 
-The codebase grew from ~500 lines to over 10,000+ lines of well-tested, documented TypeScript code, demonstrating significant feature expansion while maintaining code quality and backward compatibility.
+The codebase grew from around 500 lines to over 10,000 lines of TypeScript, adding significant features while keeping backward compatibility with the original code.
 
 ---
 
-**Generated:** February 13, 2026  
-**Repository:** https://github.com/thakhan29m-tech/Twenty-One  
-**Documentation maintained by:** thakhan29m-tech with Copilot assistance
+**Last updated:** March 17, 2026  
+**Repository:** https://github.com/thakhan29m-tech/Twenty-One
