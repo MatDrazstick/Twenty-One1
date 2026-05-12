@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twenty-One — Online Multiplayer</title>
+    <title>Twenty-One - Online Multiplayer</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,7 +20,6 @@
             padding: 20px;
         }
 
-        /* ── Lobby screens ── */
         .screen {
             width: 100%;
             max-width: 480px;
@@ -62,7 +61,6 @@
         .back-link:hover { color: #777; }
         .hidden { display: none !important; }
 
-        /* ── Game canvas ── */
         #gameCanvas {
             position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh;
@@ -72,9 +70,7 @@
 </head>
 <body>
 
-    <!-- ══ Lobby ══════════════════════════════════════════════════════════ -->
     <div id="lobby">
-        <!-- Main Menu -->
         <div id="menu" class="screen">
             <h1>TWENTY-ONE</h1>
             <p class="subtitle">Online Multiplayer</p>
@@ -86,64 +82,54 @@
                 </div>
             </div>
             <div style="width:100%;display:flex;flex-direction:column;gap:10px">
-                <button id="createRoomBtn" class="btn">▶ Create Room</button>
-                <p class="subtitle" style="text-align:center">— or —</p>
+                <button id="createRoomBtn" class="btn">Create Room</button>
+                <p class="subtitle" style="text-align:center">or</p>
                 <div class="panel" style="gap:10px;display:flex;flex-direction:column">
                     <div class="form-row">
                         <label for="roomCode">Room Code</label>
                         <input type="text" id="roomCode" placeholder="Enter room code" maxlength="8">
                     </div>
-                    <button id="joinRoomBtn" class="btn">⚡ Join Room</button>
+                    <button id="joinRoomBtn" class="btn">Join Room</button>
                 </div>
             </div>
-            <a href="index.html" class="back-link">← Back to main menu</a>
+            <a href="index.html" class="back-link">Back to main menu</a>
         </div>
 
-        <!-- Waiting Room -->
         <div id="waitingRoom" class="screen hidden">
             <h1>TWENTY-ONE</h1>
             <div class="divider"></div>
             <div class="status-box">Room created. Share this code:</div>
             <div class="room-code" id="displayRoomCode"></div>
-            <div class="status-box">Waiting for opponent to join…</div>
+            <div class="status-box">Waiting for opponent to join</div>
         </div>
     </div>
 
-    <!-- ══ Game Canvas ════════════════════════════════════════════════════ -->
     <canvas id="gameCanvas" class="hidden"></canvas>
 
     <script>
-    // ═════════════════════════════════════════════════════════════════════════
-    //  MultiplayerRenderer – mirrors GameUI.ts but works from plain state objects
-    // ═════════════════════════════════════════════════════════════════════════
     class MultiplayerRenderer {
         constructor(canvas) {
             this.canvas  = canvas;
             this.ctx     = canvas.getContext('2d');
-            this.state   = null;      // latest game-state from server
-            this.abilities = [];      // your ability hand from latest state
+            this.state   = null;
+            this.abilities = [];
 
-            // Ability sidebar
             this.showAbilityMenu  = false;
             this.hoveredAbility   = -1;
             this.tooltipAbility   = null;
             this.tooltipX = 0;
             this.tooltipY = 0;
 
-            // Ability flash
             this.abilityFlashText  = '';
             this.abilityFlashEnd   = 0;
             this.lastAbilityKey    = '';
 
-            // Machine indicator lerp
             this.displayedMachinePos = 6;
 
-            // Callbacks wired from outside
             this.onDraw     = null;
             this.onStay     = null;
-            this.onAbility  = null;   // called with (index)
+            this.onAbility  = null;
 
-            // Layout bounds (updated each frame)
             this.tblL = 0; this.tblR = 0; this.tblT = 0; this.tblB = 0;
 
             this._boundResize = () => this.resize();
@@ -194,7 +180,6 @@
 
         destroy() { window.removeEventListener('resize', this._boundResize); }
 
-        // ── Ability sidebar bounds ──────────────────────────────────────────
         _abBounds(i) {
             const sw = 300;
             return { x: this.canvas.width - sw + 15, y: 100 + i * 85, w: sw - 30, h: 70 };
@@ -208,7 +193,6 @@
             return -1;
         }
 
-        // ── Drawing primitives (mirror GameUI) ─────────────────────────────
         _drawTableSurface() {
             const { ctx, tblL, tblR, tblT, tblB } = this;
             const w = tblR - tblL, h = tblB - tblT;
@@ -347,12 +331,12 @@
             if (!s) return;
             if (s.revealPhase && s.revealPhase !== 'playing' && s.revealPhase !== 'round-over') return;
             let msg = '';
-            if (s.gameOver)            msg = `✓ Game Over! ${s.winner} wins!`;
-            else if (!s.isYourTurn)    msg = `⏳ ${s.opponentName}'s turn…`;
-            else if (s.yourBusted)     msg = '💥 Busted! Right-click to Stay.';
-            else if (s.mustDraw)       msg = '⚠ Timer expired — you must draw a card!';
-            else if (s.yourStayed)     msg = 'You stayed. Waiting for opponent…';
-            else                       msg = '▶ Your turn — L-click Draw, R-click Stay';
+            if (s.gameOver)            msg = `Game Over! ${s.winner} wins!`;
+            else if (!s.isYourTurn)    msg = `${s.opponentName}'s turn`;
+            else if (s.yourBusted)     msg = 'Busted! Right-click to Stay.';
+            else if (s.mustDraw)       msg = 'Timer expired - you must draw a card!';
+            else if (s.yourStayed)     msg = 'You stayed. Waiting for opponent';
+            else                       msg = 'Your turn - L-click Draw, R-click Stay';
             ctx.font = '14px Courier';
             ctx.textBaseline = 'top'; ctx.textAlign = 'center';
             const mw = ctx.measureText(msg).width + 28;
@@ -380,7 +364,7 @@
             ctx.fillStyle = rem <= 10 ? '#ff4444' : '#fff';
             ctx.font = 'bold 22px Courier';
             ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-            ctx.fillText(`⏱ ${rem}s`, this.canvas.width / 2, 10);
+            ctx.fillText(`${rem}s`, this.canvas.width / 2, 10);
         }
 
         _drawControls() {
@@ -395,9 +379,9 @@
             const phase = s.revealPhase;
             if (!phase || phase === 'playing' || phase === 'round-over') return;
             const msgs = {
-                'both-stayed':    'Both players have stayed — cards are about to be revealed',
-                'revealing':      'Revealing hidden cards…',
-                'machine-moving': 'The machine moves…',
+                'both-stayed':    'Both players have stayed - cards are about to be revealed',
+                'revealing':      'Revealing hidden cards',
+                'machine-moving': 'The machine moves',
             };
             const msg = msgs[phase];
             if (!msg) return;
@@ -506,7 +490,6 @@
             lines.forEach((l, i) => ctx.fillText(l, tx + pad, ty + pad + 18 + i * lh));
         }
 
-        // ── Main render ─────────────────────────────────────────────────────
         render() {
             const ctx = this.ctx;
             const W = this.canvas.width, H = this.canvas.height;
@@ -525,7 +508,6 @@
 
             const s = this.state;
             if (s) {
-                // Opponent (top)
                 ctx.fillStyle = '#777'; ctx.font = '11px Courier';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
                 ctx.fillText((s.opponentName || 'Opponent').toUpperCase(), tblCx, tblT + 18);
@@ -533,7 +515,6 @@
                 const oppFaceDown = s.opponentHand.some(c => !c.faceup);
                 this._drawScore(s.opponentVisibleScore, oppFaceDown, s.opponentVisibleScore, false, tblL + 14, tblT + 170);
 
-                // Local player (bottom)
                 const localCardsY = tblB - 148;
                 ctx.fillStyle = '#ccc'; ctx.font = '11px Courier';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
@@ -542,28 +523,19 @@
                 this._drawScore(s.yourScore, false, s.yourScore, true, tblL + 14, tblB - 28);
             }
 
-            // Machine track (always visible, centre of table)
             this._drawMachineTrack();
-
-            // Left machine box
             this._drawMachineBox();
-
-            // HUD
             this._drawRoundInfo();
             this._drawTimer();
             this._drawStatus();
             this._drawControls();
 
-            // Overlays
             this._updateAndDrawAbilityFlash();
             this._drawRevealOverlay();
             this._drawAbilityMenu();
         }
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Socket.io glue
-    // ═════════════════════════════════════════════════════════════════════════
     const socket = io();
     let currentRoom = null;
     let isHost = false;
@@ -581,7 +553,8 @@
         lobby.classList.add('hidden');
         gameCanvas.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-        document.body.style.padding  = '0';        if (!renderer) {
+        document.body.style.padding  = '0';
+        if (!renderer) {
             renderer = new MultiplayerRenderer(gameCanvas);
             renderer.onDraw    = () => socket.emit('player-draw');
             renderer.onStay    = () => socket.emit('player-stay');
@@ -633,7 +606,7 @@
     socket.on('error', (data) => { alert(data.message); });
 
     socket.on('opponent-disconnected', () => {
-        if (renderer) renderer.state = { ...(renderer.state ?? {}), _disconnectMsg: 'Opponent disconnected. Waiting for reconnection…' };
+        if (renderer) renderer.state = { ...(renderer.state ?? {}), _disconnectMsg: 'Opponent disconnected. Waiting for reconnection' };
     });
 
     socket.on('opponent-reconnected', () => {
@@ -645,7 +618,6 @@
         showGame();
     });
 
-    // Reconnection persistence
     window.addEventListener('beforeunload', () => {
         if (currentRoom) {
             localStorage.setItem('twentyone-room', currentRoom);
