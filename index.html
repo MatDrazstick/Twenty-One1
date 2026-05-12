@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Twenty-One</title>
     <style>
-        /* ── Reset & base ──────────────────────────────────────────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
@@ -17,7 +16,6 @@
             width: 100vw;
         }
 
-        /* ── Game canvas (full-screen, behind overlays) ─────────────────── */
         #gameCanvas {
             display: block;
             position: fixed;
@@ -26,7 +24,6 @@
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
         }
 
-        /* Game screen wraps the canvas; hidden until game starts */
         #game-screen {
             display: none;
             position: fixed;
@@ -34,7 +31,6 @@
             width: 100%; height: 100%;
         }
 
-        /* ── Overlay screens (menu & settings) ──────────────────────────── */
         .screen {
             position: fixed;
             inset: 0;
@@ -48,7 +44,6 @@
             padding: 40px 20px;
         }
 
-        /* ── Typography ──────────────────────────────────────────────────── */
         h1 {
             font-size: clamp(2rem, 6vw, 4rem);
             letter-spacing: 0.15em;
@@ -64,7 +59,6 @@
             text-transform: uppercase;
         }
 
-        /* ── Menu buttons ────────────────────────────────────────────────── */
         .menu-btn {
             width: 260px;
             padding: 16px 0;
@@ -89,7 +83,6 @@
         }
         .menu-btn.secondary:hover { border-color: #aaa; color: #bbb; }
 
-        /* ── Settings form ───────────────────────────────────────────────── */
         .settings-grid {
             display: flex;
             flex-direction: column;
@@ -133,7 +126,6 @@
             margin-top: 8px;
         }
 
-        /* ── Decorative divider ──────────────────────────────────────────── */
         .divider {
             width: 200px;
             height: 1px;
@@ -143,33 +135,25 @@
 </head>
 <body>
 
-    <!-- ════════════════════════════════════════════════════════════════
-         Main Menu
-    ═══════════════════════════════════════════════════════════════════ -->
     <div id="main-menu" class="screen">
         <h1>TWENTY-ONE</h1>
         <p class="subtitle">A card game of skill and machine</p>
         <div class="divider"></div>
-        <button id="btn-singleplayer" class="menu-btn">▶ Singleplayer</button>
-        <button id="btn-multiplayer"  class="menu-btn">⚡ Online Multiplayer</button>
+        <button id="btn-singleplayer" class="menu-btn">Singleplayer</button>
+        <button id="btn-multiplayer"  class="menu-btn">Online Multiplayer</button>
         <div class="divider"></div>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════════════
-         Game Settings Screen
-    ═══════════════════════════════════════════════════════════════════ -->
     <div id="settings-screen" class="screen" style="display:none">
         <h2 id="settings-title">Game Settings</h2>
         <div class="divider"></div>
 
         <div class="settings-grid">
-            <!-- Player 1 name -->
             <div class="form-row">
                 <label for="player-name">Your Name</label>
                 <input type="text" id="player-name" placeholder="Player 1" maxlength="20">
             </div>
 
-            <!-- Timer -->
             <div class="form-row">
                 <label for="timer-select">Turn Timer</label>
                 <select id="timer-select">
@@ -182,7 +166,6 @@
                 </select>
             </div>
 
-            <!-- Move Distance Mode -->
             <div class="form-row">
                 <label for="move-mode-select">Move Distance Mode</label>
                 <select id="move-mode-select">
@@ -191,7 +174,6 @@
                 </select>
             </div>
 
-            <!-- First Player -->
             <div class="form-row">
                 <label for="first-player-select">First Player</label>
                 <select id="first-player-select">
@@ -203,19 +185,15 @@
         </div>
 
         <div class="btn-row">
-            <button id="btn-back"       class="menu-btn secondary">← Back</button>
+            <button id="btn-back"       class="menu-btn secondary">Back</button>
             <button id="btn-start-game" class="menu-btn">Start Game</button>
         </div>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════════════
-         Game Screen (canvas-based, rendered by GameUI.ts)
-    ═══════════════════════════════════════════════════════════════════ -->
     <div id="game-screen">
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <!-- Entry point; type="module" enables ES-module imports -->
     <script type="module" src="src/Main.js"></script>
 </body>
 </html>
