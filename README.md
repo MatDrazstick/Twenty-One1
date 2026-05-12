@@ -19,7 +19,7 @@ Each round, players receive 2 random ability cards that can be used strategicall
 - 2-Card, 3-Card, 4-Card, 6-Card, 7-Card: Draw a specific numbered card if available in the deck
 
 #### Deck Trump Abilities (7 cards)
-- Hush: Draw a hidden card that your opponent can't see
+- Hush: Draw a hidden card that your opponent cannot see
 - Perfect Draw: Draw the best available card to reach the target without busting
 - Refresh: Return all visible cards and draw 2 new ones
 - Remove: Remove your opponent's last drawn card

@@ -1,15 +1,15 @@
 // src/Main.ts
 // Entry point for the Twenty-One game browser UI.
-// Handles Main Menu → Game Settings → Game loop.
+// Handles Main Menu -> Game Settings -> Game loop.
 
 import { Game, GameSettings } from './Game.js';
 import { GameUI } from './GameUI.js';
 
-// ─── State ────────────────────────────────────────────────────────────────────
+// State
 let currentGame: Game | null = null;
 let currentUI: GameUI | null = null;
 
-// ─── DOM references ───────────────────────────────────────────────────────────
+// DOM references
 const mainMenuEl    = document.getElementById('main-menu')!;
 const settingsEl    = document.getElementById('settings-screen')!;
 const gameScreenEl  = document.getElementById('game-screen')!;
@@ -22,7 +22,7 @@ const moveModeSelect   = document.getElementById('move-mode-select') as HTMLSele
 const firstPlayerSelect= document.getElementById('first-player-select') as HTMLSelectElement;
 const settingsTitle    = document.getElementById('settings-title')!;
 
-// ─── Screen transitions ───────────────────────────────────────────────────────
+// Screen transitions
 function showMainMenu(): void {
   mainMenuEl.style.display   = 'flex';
   settingsEl.style.display   = 'none';
@@ -42,7 +42,7 @@ function showGame(): void {
   gameScreenEl.style.display = 'block';
 }
 
-// ─── Button wiring ────────────────────────────────────────────────────────────
+// Button wiring
 document.getElementById('btn-singleplayer')!.addEventListener('click', () => {
   showSettings();
 });
@@ -60,7 +60,7 @@ document.getElementById('btn-start-game')!.addEventListener('click', () => {
   startGame().catch(console.error);
 });
 
-// ─── Game lifecycle ───────────────────────────────────────────────────────────
+// Game lifecycle
 async function startGame(): Promise<void> {
   // Collect settings from the form
   const p1Name: string    = playerNameInput.value.trim()   || 'Player 1';
@@ -111,5 +111,5 @@ function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ─── Boot ─────────────────────────────────────────────────────────────────────
+// Boot
 showMainMenu();
